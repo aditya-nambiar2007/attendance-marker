@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance marker</title>
+    <link rel="stylesheet" href="/attendance/attendance.css">
+    <script src="/attendance/attendance.js" defer></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
+</head>
+<body>
+    <nav><img src="" alt="AttendEase"><span><a href="/student/student.html">Home</a><a href="/student/courses.html">Courses</a><a href="/signout.html">Sign Out</a></span></nav>
+    <div>
+        <div id="Location_check" class="step">
+            <h3>Location Verification</h3>
+            <span style="color:gold">Verify Your Location</span>
+            <button id="loc">Verify</button>
+        </div>
+        <div id="Code_correction" class="step">
+            <h3>Code Verification</h3>
+            <div id="manual">
+            <input type="number" name="" id="code">
+            <button id="code_check">Submit Code</button>
+            </div>
+            <div id="Qr">
+            <button id="Qr_check">Scan Qr Code</button>
+            <div id="qr_reader" style="width:500px">
+            </div>
+            </div>
+        </div>
+        <div id="Face_verification" class="step">
+            <h3>Face Verification</h3>
+            <div id="video"></div>
+            <button id="verify">Record and Verify</button>
+        </div>
+    </div>
+</body>
+</html>

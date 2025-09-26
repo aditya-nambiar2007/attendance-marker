@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AttendEase</title>
+    <style>
+      /* General Body Styling */
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Helvetica, Arial, sans-serif;
+        background-color: #f4f7f6;
+        margin: 0;
+        padding: 0;
+        min-height: 100vh;
+      }
+
+      /* Navbar Styling */
+      .navbar {
+        background-color: #ffffff;
+        padding: 0 40px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        height: 60px;
+      }
+
+      .navbar .brand {
+        font-size: 24px;
+        font-weight: 600;
+        color: #007bff;
+      }
+
+      .navbar .nav-links a {
+        color: #555;
+        text-decoration: none;
+        font-size: 16px;
+        margin-left: 20px;
+        padding: 8px 12px;
+        border-radius: 6px;
+        transition: background-color 0.3s, color 0.3s;
+      }
+
+      .navbar .nav-links a:hover {
+        background-color: #f0f0f0;
+      }
+
+      .navbar .nav-links a.active {
+        background-color: #007bff;
+        color: white;
+        font-weight: 500;
+      }
+
+      /* Main content container to center the forms */
+      .main-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 40px 20px;
+      }
+
+      /* Form Container */
+      .form-container {
+        background-color: #ffffff;
+        padding: 30px 40px;
+        border-radius: 12px;
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        width: 100%;
+        max-width: 500px;
+      }
+
+      /* Form Header */
+      h2 {
+        text-align: center;
+        color: #333;
+        margin-top: 0;
+        margin-bottom: 25px;
+      }
+
+      /* Toggle Switch for Role Selection in Registration */
+      .role-selector {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 30px;
+        border: 1px solid #ddd;
+        border-radius: 25px;
+        overflow: hidden;
+      }
+
+      .role-selector label {
+        flex: 1;
+        text-align: center;
+        padding: 12px 0;
+        cursor: pointer;
+        transition: background-color 0.3s, color 0.3s;
+        color: #555;
+      }
+
+      .role-selector input[type="radio"] {
+        display: none; /* Hide the actual radio buttons */
+      }
+
+      .role-selector input[type="radio"]:checked + label {
+        background-color: #007bff;
+        color: white;
+        font-weight: 600;
+      }
+
+      /* Form Groups for consistent spacing */
+      .form-group {
+        margin-bottom: 20px;
+        position: relative;
+      }
+
+      .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 500;
+        color: #555;
+      }
+
+      .form-group input,
+      .form-group select {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        box-sizing: border-box; /* Important for padding and width */
+        transition: border-color 0.3s;
+      }
+
+      .form-group input:focus,
+      .form-group select:focus {
+        outline: none;
+        border-color: #007bff;
+        box-shadow: 0 0 5px rgba(0, 123, 255, 0.25);
+      }
+
+      /* Submit Button */
+      button[type="submit"] {
+        width: 100%;
+        padding: 14px;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.3s;
+      }
+
+      #loginForm button[type="submit"] {
+        background-color: #007bff;
+      }
+      #loginForm button[type="submit"]:hover {
+        background-color: #0056b3;
+      }
+
+      #registrationForm button[type="submit"] {
+        background-color: #28a745;
+      }
+
+      #registrationForm button[type="submit"]:hover {
+        background-color: #218838;
+      }
+
+      /* small preview styling */
+      .pfp-preview {
+        display: block;
+        margin-top: 8px;
+        border-radius: 6px;
+        border: 1px solid #ddd;
+      }
+
+      .file-label {
+        display: inline-block;
+        padding: 8px 12px;
+        border-radius: 6px;
+        background: #f8f9fa;
+        cursor: pointer;
+        border: 1px solid #ccc;
+      }
+
+      .hidden {
+        display: none;
+      }
+    </style>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+  </head>
+  <body>
+    <nav class="navbar">
+      <div class="brand">AttendEase</div>
+      <div class="nav-links">
+        <a href="#login" id="login-link">Login</a>
+        <a href="#" id="register-link" class="active">Register</a>
+      </div>
+    </nav>
+
+    <div class="main-container">
+      <!-- Registration Form Container -->
+      <div class="form-container" id="registration-container">
+        <h2>Create an Account</h2>
+        <form id="registrationForm" action="/register" method="POST" onsubmit="return validateRegister(event)">
+          <div class="role-selector">
+            <input
+              type="radio"
+              id="studentRole"
+              name="userRole"
+              value="student"
+              checked
+            />
+            <label for="studentRole">Student</label>
+
+            <input
+              type="radio"
+              id="facultyRole"
+              name="userRole"
+              value="faculty"
+            />
+            <label for="facultyRole">Faculty</label>
+          </div>
+
+          <div class="form-group">
+            <label for="reg-fullName">Full Name</label>
+            <input type="text" id="reg-fullName" name="fullName" required />
+          </div>
+          <div class="form-group">
+            <label for="reg-email">Email Address</label>
+            <input type="email" id="reg-email" name="email" required />
+          </div>
+          <div class="form-group">
+            <label for="reg-password">Password</label>
+            <input type="password" id="reg-password" name="password" required />
+          </div>
+
+          <!-- Photo upload area: required for students, optional for faculty -->
+          <div class="form-group" id="photo-group">
+            <label class="file-label" for="reg-file">Upload Your Photo (for verification)</label>
+            <img id="reg-pfp-preview" src="" alt="Profile preview" width="120" height="120" class="pfp-preview hidden" />
+            <!-- Hidden input will contain base64 data for server (name="pfp") -->
+            <input type="hidden" id="photo-base64" name="pfp" />
+            <!-- Actual file input (kept visually hidden but accessible via label) -->
+            <input type="file" id="reg-file" accept=".png,.jpg,.jpeg" class="hidden" />
+            <small id="photo-help" style="display:block;margin-top:6px;color:#666">Required for students. Max 75 KB.</small>
+          </div>
+
+          <button type="submit">Register</button>
+        </form>
+      </div>
+
+      <!-- Login Form Container (Initially Hidden) -->
+      <div class="form-container" id="login-container" style="display: none">
+        <h2>Welcome Back!</h2>
+        <form id="loginForm" action="/login" method="POST">
+          <div class="form-group">
+            <label for="login-role">Role : </label>
+            <select id="login-role" name="userRole" required>
+              <option value="">--Select Role--</option>
+              <option value="student">Student</option>
+              <option value="faculty">Faculty</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="login-email">Email Address</label>
+            <input type="email" id="login-email" name="email" required />
+          </div>
+          <div class="form-group">
+            <label for="login-password">Password</label>
+            <input
+              type="password"
+              id="login-password"
+              name="password"
+              required
+              />
+            </div>
+            <div class="form-group">
+              <a href="cred_change.html" style="margin-bottom:1em">Change Credentials ...</a>
+            </div>
+            <button type="submit">Login</button>
+        </form>
+      </div>
+    </div>
+
+    <script>
+      // Converts selected file to data URL, stores in hidden input and shows preview
+      function fileToDataUrl(fileInput) {
+        const file = fileInput.files && fileInput.files[0];
+        if (!file) {
+          $('#photo-base64').val('');
+          $('#reg-pfp-preview').attr('src', '').addClass('hidden');
+          return;
+        }
+        if (file.size > 75000) {
+          alert("Please select an image smaller than 75 KB.");
+          fileInput.value = '';
+          $('#photo-base64').val('');
+          $('#reg-pfp-preview').attr('src', '').addClass('hidden');
+          return;
+        }
+        const reader = new FileReader();
+        reader.onloadend = function () {
+          $('#photo-base64').val(reader.result);
+          $('#reg-pfp-preview').attr('src', reader.result).removeClass('hidden');
+        };
+        reader.readAsDataURL(file);
+      }
+
+      // Validate before submitting: ensure students have provided a photo
+      function validateRegister(e) {
+        const role = $('input[name="userRole"]:checked').val();
+        const photoValue = $('#photo-base64').val();
+        if (role === 'student' && !photoValue) {
+          alert('Students must upload a photo for verification.');
+          return false; // prevent submit
+        }
+        return true; // allow submit
+      }
+
+      $(document).ready(function () {
+          // --- Toggle between Login and Registration Forms ---
+          $('#login-link').on('click', function(e) {
+              e.preventDefault(); // Prevent default link behavior
+
+              // Show login and hide registration
+              $('#login-container').show();
+              $('#registration-container').hide();
+
+              // Update active class on nav links
+              $('#login-link').addClass('active');
+              $('#register-link').removeClass('active');
+          });
+
+          $('#register-link').on('click', function(e) {
+              e.preventDefault();
+
+              // Show registration and hide login
+              $('#registration-container').show();
+              $('#login-container').hide();
+
+              // Update active class on nav links
+              $('#register-link').addClass('active');
+              $('#login-link').removeClass('active');
+          });
+
+          // toggle fields and requiredness for photo input depending on role
+          function toggleRegistrationFields() {
+              if ($('input[name="userRole"]:checked').val() === "student") {
+                  $('#photo-help').text('Required for students. Max 75 KB.');
+              } else {
+                  $('#photo-help').text('Optional for faculty. Max 75 KB.');
+              }
+          }
+
+          // Run once on load to set initial state
+          toggleRegistrationFields();
+
+          // When role changes, update help text (validation handled on submit)
+          $('input[name="userRole"]').on("change", function () {
+              toggleRegistrationFields();
+          });
+
+          // When the visible label is clicked, trigger the hidden file input
+          $('.file-label').on('click', function () {
+              $('#reg-file').trigger('click');
+          });
+
+          // When user selects a file, convert it to data URL
+          $('#reg-file').on('change', function () {
+              fileToDataUrl(this);
+          });
+
+          // Hash in URL handling for errors / initial view
+          if(location.hash.startsWith('#login')) {
+            $("#login-link").click();
+            if(location.hash==="#loginError"){alert("Invalid Url or Password")}
+          } else if(location.hash==='#registerError') {
+            $("#register-link").click();
+            alert("User Already Exists")
+          } else {
+            $("#register-link").click();
+          }
+      });
+    </script>
+  </body>
+</html>

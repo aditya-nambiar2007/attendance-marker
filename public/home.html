@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Attendease Dashboard</title>
+  </head>
+  <body>
+    <script src="/lib/cookie.js"></script>
+    <script>
+    if(!getCookie("email") || !getCookie("role")){
+        window.location.replace("/register");
+    }
+    else if(getCookie("role")==="faculty"){
+        window.location.replace( "/dashboard/faculty");
+    }
+    else if(getCookie("role")==="student"){
+        window.location.replace( "/dashboard/student");
+    }
+    else{
+        window.location.replace("/register+");
+    }
+    </script>
+  </body>
+</html>
