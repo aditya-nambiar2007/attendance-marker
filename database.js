@@ -35,9 +35,11 @@ const courseSchema = new mongoose.Schema({
 })
 
 const classSchema = new mongoose.Schema({
-    start: { type: String, required: true },
-    end: { type: String, required: true },
-    attendance: Map,
+    course_code: { type: String, required: true },
+    start: { type: Date, required: true },
+    duration: { type: Number, required: true },
+    attendance: [Map],
+    attendance_date: { type: Date },
     location: [Number],
     code: String,
     status: { type: String, required: true, default: "pending", enum: ["pending", "completed", "cancelled"] },
@@ -48,6 +50,7 @@ const classSchema = new mongoose.Schema({
 const Student = mongoose.model('Student', studentSchema)
 const Faculty = mongoose.model('Faculty', facultySchema)
 const Course = mongoose.model('Course', courseSchema)
+const Class = mongoose.model("Class", classSchema)
 const OTP = mongoose.model('OTP', OTPSchema)
 
 
@@ -55,8 +58,8 @@ const OTP = mongoose.model('OTP', OTPSchema)
 const exports = {
     student: {
         create: async (data) => {
-            data.courses = []
             const student = new Student(data)
+            data.courses = []
             return await student.save()
         },
         find: async (query) => {
@@ -81,8 +84,8 @@ const exports = {
         delete: async (query) => {
             return await Student.deleteOne(query)
         },
-    }
-    ,
+    },
+
     faculty: {
         create: async (data) => {
             data.courses = []
@@ -95,7 +98,6 @@ const exports = {
         id: async id => {
             return await Faculty.findById(id)
         },
-
         update_courses: async (id, course, a_or_d) => {
             const data = await Faculty.findById(id)
             if (a_or_d == 'add') {
@@ -103,7 +105,7 @@ const exports = {
                 data.save()
             }
             else if (a_or_d == 'delete') {
-                data.courses.pull(course)                
+                data.courses.pull(course)
                 data.save()
             }
         },
@@ -111,6 +113,7 @@ const exports = {
             return await Faculty.deleteOne({ id: query })
         },
     },
+
     course: {
         create: async (data) => {
             data.students = []
@@ -118,8 +121,8 @@ const exports = {
             return await course.save()
         },
         find: async (query) => {
-            return query.id?await Course.findById(query.id):await Course.find({course_code:query.code})
-        
+            return query.id ? await Course.findById(query.id) : await Course.find({ course_code: query.code })
+
         },
         update_students: async (id, student, a_or_d) => {
             const data = await Course.findOne({ course_code: id })
@@ -136,32 +139,49 @@ const exports = {
             return await Course.deleteOne(query)
         },
     },
+
     class: (course_code) => {
-        const Class = mongoose.model(course_code, classSchema)
+        if (!exports.course.find({ course_code: course_code })) {
+            return { msg: "Course does not exist" }
+        }
         return {
-            create: async data => { const sav = new Class(data); sav.save(); return sav.id },
+            create: async data => { data.course_code = course_code;const sav = new Class(data); sav.save(); return sav.id },
             location: async (id, location) => { return await Class.findByIdAndUpdate(id, { location: location }) },
             code: async (id) => {
+                const code=Math.floor(100000 + Math.random() * 900000)
                 await Class.findByIdAndUpdate(id, { code: code });
-                setTimeout(async () => { await Class.findByIdAndUpdate(id, { code: "" }) }, 20 * 1000)
+                setTimeout(async () => { await Class.findByIdAndUpdate(id, { code: null }) }, 20 * 1000)
+                return code;
             },
-            ret_all: async () => { return await Class.find() },
+            ret_all: async () => { return await Class.find({course_code:course_code}) },
             find: async id => { return await Class.findById(id) },
             attendance: async (id, details) => {
-                if (!exports.course.find({ course_code: course_code })) {
-                    return { msg: "Course does not exist" }
-                }
-                return await Class.findByIdAndUpdate(id, { $addToSet: { attendance: details.email } })
+                const data = new Map([["email", details.email], ["id", details.id]])
+                return await Class.findByIdAndUpdate(id, { $addToSet: { attendance: data } })
+            },
+            notes: async (id, notes) => {
+                return await Class.findByIdAndUpdate(id, { Notes: notes })
             },
             cancel: async id => {
+                console.log(await Class.findById(id)," is being cancelled")
                 return await Class.findByIdAndUpdate(id, { status: "cancelled" })
             },
+            date:async(id,date)=>{
+                if(date)
+                {await Class.findByIdAndUpdate(id,{attendance_date:date})
+                 return;
+                }
+                else{
+                    return await Class.findById(id).attendance_date
+                }
+            },
             delete: async () => {
-                mongoose.connection.db.dropCollection(course_code).then(e=>{}).catch(e=>{console.log("This Collection doesn't exist")})
+                return await Class.deleteMany({ course_code: course_code })
             }
 
         }
     },
+
     otp: {
         create: async (email, otp) => {
             await OTP.deleteOne({ email: email })

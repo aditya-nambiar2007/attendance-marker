@@ -110,6 +110,7 @@
         padding: 1%;
         display: flex;
         justify-content: space-between;
+        border-bottom: 2px solid black;
       }
       #customPrompt {
         position: fixed;
@@ -242,11 +243,11 @@
       const courseId = urlParams.get("courseId");
 
       const load_courses = () => {
-        $.get("/facultyDetails?id=" + getCookie("id"), function (data) {
+        $.get("/facultyDetails?", function (data) {
           $("#courses").empty();
           data.forEach((course) => {
             $("#courses").append(
-              `<div class="course"><h1><a href="/classes.html?courseId=${course._id}">${course.course_name}</a></h1><span>Instructor : ${course.faculty_name}</span><span>Code : ${course.course_code}</span><span><button class="leave" onclick="finish_course('${course.course_code}')">Finish Course</button></span></div>`
+              `<div class="course"><h1><a href="./classes.html?courseId=${course.course_code}&name=${course.course_name}">${course.course_name}</a></h1><span>Instructor : ${course.faculty_name}</span><span>Code : ${course.course_code}</span><span><button class="leave" onclick="finish_course('${course.course_code}')">Finish Course</button></span></div>`
             );
           });
         });
@@ -259,9 +260,6 @@
             "/api/course",
             {
               task: "finish_course",
-              name: getCookie("name"),
-              email: getCookie("email"),
-              id: getCookie("id"),
               course_code: code,
             },
             function (data) {
@@ -293,9 +291,6 @@
             "/api/course",
             {
               task: "create_course",
-              name: getCookie("name"),
-              email: getCookie("email"),
-              id: getCookie("id"),
               course_name: res.replace(/\s+/g, "-"),
             },
             function (data) {

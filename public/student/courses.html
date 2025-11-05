@@ -241,11 +241,11 @@
       const courseId = urlParams.get("courseId");
 
       const load_courses = () => {
-        $.get("/studentDetails?id=" + getCookie("id"), function (data) {
+        $.get("/studentDetails", function (data) {
           $("#courses").empty();
           data.forEach((course) => {
             $("#courses").append(
-              `<div class="course"><h1><a href="/classes.html?courseId=${course._id}">${course.course_name}</a></h1><span>Instructor : ${course.faculty_name}</span><span>Code : ${course.course_code}</span><span><button class="leave" onclick="leave_course('${course.course_code}')">Leave Course</button></span></div>`
+              `<div class="course"><h1><a href="./classes.html?courseId=${course.course_code}&name=${course.course_name}">${course.course_name}</a></h1><span>Instructor : <a href="mailto:${course.faculty_email}" style="text-decoration:underline;color:blue">${course.faculty_name}</a></span><span>Code : ${course.course_code}</span><span></span><span><button class="leave" onclick="leave_course('${course.course_code}')">Leave Course</button></span></div>`
             );
           });
         });
@@ -258,9 +258,6 @@
             "/api/course",
             {
               task: "leave_course",
-              name: getCookie("name"),
-              email: getCookie("email"),
-              id: getCookie("id"),
               course_code: code,
             },
             function (data) {
@@ -291,9 +288,7 @@
             "/api/course",
             {
               task: "join_course",
-              name: getCookie("name"),
-              email: getCookie("email"),
-              id: getCookie("id"),
+
               course_code: res,
             },
             function (data) {

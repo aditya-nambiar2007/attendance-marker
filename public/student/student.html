@@ -134,7 +134,7 @@
         });
 
         if (!getCookie("email") || !getCookie("role")) {
-        window.location.replace("/register");
+        //window.location.replace("/register");
       } else if (getCookie("role") === "faculty") {
         window.location.href = "/dashboard/faculty";
       } 

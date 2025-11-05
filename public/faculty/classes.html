@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs/qrcode.min.js"></script>
+    <script src="/lib/cookie.js"></script>
+    <title>Document</title>
+  </head>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+        Helvetica, Arial, sans-serif;
+      background-color: #f4f7f6;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+    }
+
+    /* Navbar Styling */
+    .navbar {
+      background-color: #ffffff;
+      padding: 0 40px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      height: 60px;
+    }
+
+    .navbar .brand {
+      font-size: 24px;
+      font-weight: 600;
+      color: #007bff;
+    }
+
+    .navbar .nav-links a {
+      color: #555;
+      text-decoration: none;
+      font-size: 16px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    .navbar .nav-links a:hover {
+      background-color: #f0f0f0;
+    }
+
+    .navbar .nav-links a.active {
+      background-color: #007bff;
+      color: white;
+      font-weight: 500;
+    }
+    h1{
+    padding: 1%;
+    display: flex;
+    justify-content: space-between;
+text-decoration: underline; 
+margin-block-end: 0; 
+}
+    h2 {
+      padding: 1%;
+      display: flex;
+      justify-content: space-between;
+      border-bottom: 2px solid black;
+      margin-block-start: 0;
+      padding-top: 0;
+    }
+    button#schedule,
+    button#refresh {
+      font-size: 1.5rem;
+      background-color: darkturquoise;
+      color: white;
+      font-weight: bold;
+      border-radius: 0.3em;
+      transition: all 0.3s ease-in-out;
+      cursor: pointer;
+    }
+    button#refresh {
+      background-color: rgb(15, 72, 178) !important;
+      color: white;
+    }
+    button#refresh:hover {
+      color: rgb(15, 72, 178) ;
+      background-color: white!important;
+    }
+    button#students {
+      transition: all 0.3s ease-in-out;
+      font-size: 1.5rem;
+      background-color: darkslateblue;
+      color: yellow;
+      font-weight: bold;
+      border-radius: 0.3em;
+      cursor: pointer;
+    }
+    button#students:hover {
+      color: darkslateblue;
+      background-color: yellow;
+    }
+
+    button#schedule:hover {
+      color: darkturquoise;
+      background-color: #f4f7f6;
+    }
+    #customPrompt,#manual-mark {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: white;
+      border: 1px solid #ccc;
+      padding: 20px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      z-index: 1000; /* Ensure it's on top of other content */
+    }
+    #attend_code {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: white;
+      border: 1px solid #ccc;
+      padding: 20px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      z-index: 1000; /* Ensure it's on top of other content */
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    
+    }
+    .prompt-content > p > input,
+    #customPrompt > span > button, 
+    #Cancel {
+      font-size: 1.5rem;
+    }
+    #promptOk  {
+      color: #fff;
+      background-color: #28a745;
+      border: #28a745;
+      border-radius: 0.3em;
+      padding: 0.2em;
+      cursor: pointer;
+    }
+    #promptCancel, #Cancel {
+      color: #fff;
+      background-color: #2b2b2b;
+      border: #2b2b2b;
+      border-radius: 0.3em;
+      padding: 0.2em;
+      cursor: pointer;
+    }
+    div.class {
+      display: flex;
+      flex-direction: column;
+      margin: 2%;
+      background-color: rgba(171, 171, 25, 0.4);
+      padding: 2%;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: box-shadow 0.3s ease-in-out;
+    }
+    div.class:hover {
+      box-shadow: 5px 5px 5px 3px black;
+    }
+    div.class p,details {
+      font-size: 1.5rem;
+      font-weight: bold;
+      margin-block-end: 0.5em;
+      margin-block-start: 0.5em;
+    }
+    .pending {
+      color: crimson;
+    }
+    .completed {
+      color: green;
+    }
+    .cancelled {
+      color: #6c757d;
+    }
+    .cancel,.note,.mark-manually,.attendance-start {
+      transition: all 0.3s ease-in-out;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: bold;
+      padding: 1%;
+      border-radius: 5px;
+    }
+    .cancel {    
+    background-color: #ffc107;
+    color: black;
+    }  
+    .note {    
+    background-color: #6c757d;
+    color: whitesmoke;
+    }  
+    .mark-manually {
+      background-color: #28a745;
+      color: white;
+    }
+    .mark-manually:hover {
+      color: #28a745;
+      background-color: white;
+    }
+    .attendance-start {
+    background-color: #17a2b8;
+    color: white;
+    }
+    .attendance-start:hover {
+    color: #17a2b8;
+    background-color: white;
+    }
+</style>
+  <body>
+    <div id="customPrompt" class="hidden" style="display: none">
+      <div class="prompt-content"></div>
+      <span style="width: 100%; display: flex; justify-content: space-evenly">
+        <button id="promptOk">OK</button>
+        <button id="promptCancel">Cancel</button>
+      </span>
+    </div>
+    <div id="manual-mark" class="hidden" style="display: none">
+      <button id="toggle-manual-input" style="margin-bottom: 10px; padding: 8px; cursor: pointer;">Use Email Input</button>
+      
+      <div id="qr-scanner-section">
+        <p>Scan student's ID QR code.</p>
+        <div id="reader" style="width: 300px; height: 300px; margin: auto;"></div>
+      </div>
+
+      <div id="email-input-section" style="display: none;">
+        <p>Enter student's email address.</p>
+        <input type="email" id="manual-email-input" placeholder="student@example.com" style="width: 95%; padding: 8px; margin-bottom: 10px;"/>
+        <button id="submit-manual-email" style="padding: 8px; cursor: pointer;">Submit Email</button>
+      </div>
+      <button id="Cancel" style="margin-top: 15px;">Cancel</button>
+      </div>
+
+      <div id="attend_code" class="hidden" style="display: none" >
+        <div class="content" >
+          <div id="code" style="font-size: 6vh; font-weight: bold;text-align: center;margin-bottom:1vh"></div>
+          <div id="qr"></div>
+          <p style="font-family: monospace;text-align: center;"><b>Double click</b> or <b>Swipe</b> down to hide</p>
+        </div>
+    </span>
+    </div>
+    <nav class="navbar">
+      <div
+        class="brand"
+        onclick="location.href='/home.html'"
+        style="cursor: pointer"
+      >
+        AttendEase
+      </div>
+      <div class="nav-links">
+        <a
+          href="/faculty/courses.html"
+          id="course-link"
+          onmouseenter="this.classList.add('active')"
+          onmouseleave="this.classList.remove('active')"
+          >Courses</a
+        >
+        <a
+          href="/register#login"
+          id="login-link"
+          onmouseenter="this.classList.add('active')"
+          onmouseleave="this.classList.remove('active')"
+          >Login</a
+        >
+        <a
+          href="/register#register"
+          id="register-link"
+          onmouseenter="this.classList.add('active')"
+          onmouseleave="this.classList.remove('active')"
+          >Register</a
+        >
+        <a
+          href="#"
+          onclick="location.href=confirm('Do You Want to Sign Out!!')?'/signout':'#'"
+          id="sign-out"
+          style="color: white; background-color: crimson"
+          >Sign Out</a
+        >
+      </div>
+    </nav>
+    <h1 id="course-name-header"></h1>
+    <h2>      
+      <button id="refresh" onclick="location.hash='#classes'">Classes &#x27F3;</button>
+      <button id="students" onclick="location.href='./analytics?courseId='+get_query('courseId')">Students Info</button>
+      <button id="schedule">SCHEDULE CLASS</button>
+    </h2>
+    <div id="classes"></div>
+    <script>
+      const socket= io(location.origin);
+      socket.on("attendance",data=>{alert(data.message);load();$("#manual-mark").hide();});
+      const load = () => {
+        $.get("/courseDetails?course_code=" + get_query("courseId"), (data) => {
+          $("#classes").empty();
+          data.forEach((course) => {    
+            const date=new Date(course.start);
+            $("#classes").append(
+              `<div class="class"><p>Date : ${date.toLocaleDateString()}</p><p>Start Time : ${(date.getHours()%12).toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')} ${date.getHours()>=12?'PM':'AM'}</p><p>Duration : ${course.duration} minutes</p><p>Strength : ${  course.attendance.length}</p><p>Status : <span class="${course.status}">${  course.status.charAt(0).toUpperCase() + course.status.slice(1)}</span></p><details><summary>Notes :</summary><p style="font-weight:500;margin-left:0.5rem;margin-block-start:0;">${course.Notes||""}</p></details><p style="display:flex;justify-content:space-between"><button class="note" onclick="note('${  course._id}','${  course.Notes||""}')">Add Notes</button><button class="attendance-start" ${course.status==='pending'?"":"disabled"} onclick="startAttendance('${course._id}')">Start Attendance</button><button class="mark-manually" onclick="markManually('${course._id}')">Mark Manually</button><button class="cancel" onclick="cancel('${course._id}')">Cancel</button></p></span></div>`
+            );
+          });
+        });
+      };
+
+
+      const cancel = (id) => {
+        if (!confirm("Are you sure you want to cancel this class?")) return;
+        $.post("/api/class", { task: "cancel_class", class_id: id, course_code: get_query("courseId") }, (data) => {
+          alert(data.message);
+          load();
+        });
+      };
+
+      const markManually = (id) => {
+        $("#manual-email-input").val('')
+        let html5QrcodeScanner;
+
+        const cleanup = () => {
+          $("#manual-mark").hide();
+          if (html5QrcodeScanner && html5QrcodeScanner.getState() === Html5QrcodeScannerState.SCANNING) {
+            html5QrcodeScanner.clear().catch(err => console.error("Error clearing scanner:", err));
+          }
+          // Reset to default view
+          $("#qr-scanner-section").show();
+          $("#email-input-section").hide();
+          $("#toggle-manual-input").text("Use Email Input");
+        };
+
+        const submitByEmail = () => {
+          const email = $("#manual-email-input").val();
+          if (!email) return alert("Please enter an email.");
+          socket.emit('ManualMark',{
+            course_code : get_query("courseId"),
+            id : id,
+            details:{email:email}
+          })
+        };
+
+        $("#Cancel").off('click').on('click', cleanup);
+        $("#submit-manual-email").off('click').on('click', submitByEmail);
+
+        $("#toggle-manual-input").off('click').on('click', () => {
+          $("#qr-scanner-section, #email-input-section").toggle();
+          const buttonText = $("#qr-scanner-section").is(":visible") ? "Use Email Input" : "Use QR Scanner";
+          $("#toggle-manual-input").text(buttonText);
+        });
+
+        $("#manual-mark").show();
+        html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: { width: 250, height: 250 } }, false);
+        
+        const onScanSuccess = (decodedText, decodedResult) => {
+          socket.emit('ManualMark',{
+            course_code : get_query("courseId"),
+            id : id,
+            detaails:{id:decodedText}
+          })
+        };
+        html5QrcodeScanner.render(onScanSuccess, (error) => { /* QR scan errors are ignored */ });
+      };
+        
+      const startAttendance = (id) => {
+        if(!confirm("Do You Want To Start Attendance Session!!")){
+          return;
+        }
+        const coords=[0,0]
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            coords[0]=position.coords.latitude;
+            coords[1]=position.coords.longitude;
+            socket.emit("createSession",
+            { id:id,
+              course_code:get_query("courseId"),
+              location:coords
+            });
+          },
+          (error) => {
+            alert("Error getting location: " + error.message);
+            coords[0]=null;
+            coords[1]=null;
+          },
+          { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+        );
+      };
+      
+
+        socket.on("sessionCreated", (data) => {
+          if(data.status==="success"){
+            $("#attend_code").show();
+            $('#attend_code').dblclick(()=>{
+              $("#attend_code").hide();
+            })
+            $("#attend_code").on("touchstart",(e)=>{
+              const touchS_y=e.originalEvent.touches[0].clientY;
+              console.log(touchS_y);
+              
+              $("#attend_code").on("touchend",(e)=>{
+                const touchE_y=e.originalEvent.changedTouches[0].clientY;
+                if (touchS_y<touchE_y) {
+                  $("#attend_code").hide();
+                  }
+            })
+          })
+            $("#code").text("Code: " + data.code);
+            $("#qr").empty();
+            new QRCode(document.getElementById("qr"), {
+              text: data.code.toString(),
+              width: window.innerHeight> window.innerWidth?window.innerWidth*0.8:window.innerHeight*0.8,
+              height: window.innerHeight> window.innerWidth?window.innerWidth*0.8:window.innerHeight*0.8,
+              colorDark : "#000000",
+              colorLight : "#ffffff",
+            });
+          } else {
+            alert(data.message);
+          }
+        });
+
+      const note = async (id, existingNotes) => {
+        const prompt = await getPromptAll(["txtarea", "Enter notes for the class:"]);
+        if (prompt === null) return; // User cancelled the prompt
+        $("textarea").val(existingNotes);
+        $.post("/api/class", { task: "note", class_id: id, notes: prompt[0], course_code: get_query("courseId") }, (data) => {
+          alert(data.message);
+          load();
+        });
+      };
+      $(document).ready(() => {
+        load();
+        $("title").text(get_query("name")+" :");
+        $("#course-name-header").text(get_query("name"));
+
+        $("#schedule").click(async function () {
+          const prompt = await getPromptAll(
+            ["datetime-local", "Start"],
+            ["number", "Duration in minutes"]
+          );
+          console.log(prompt);
+          $.post(
+            "/api/class",
+            {
+              task: "create_class",
+              course_code: get_query("courseId"),
+              start: new Date(prompt[0]),
+              duration: prompt[1],
+            },
+            (data) => {
+              alert(data.message);
+              load();
+            }
+          );
+        });
+      })
+      
+    </script>
+  </body>
+</html>

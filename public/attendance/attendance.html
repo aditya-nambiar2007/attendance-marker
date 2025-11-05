@@ -11,7 +11,46 @@
     <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
 </head>
 <body>
-    <nav><img src="" alt="AttendEase"><span><a href="/student/student.html">Home</a><a href="/student/courses.html">Courses</a><a href="/signout.html">Sign Out</a></span></nav>
+    <nav class="navbar">
+      <div
+        class="brand"
+        onclick="location.href='/home.html'"
+        style="cursor: pointer"
+      >
+        AttendEase
+      </div>
+      <div class="nav-links">
+        <a
+          href="/faculty/courses.html"
+          id="course-link"
+          onmouseenter="this.classList.add('active')"
+          onmouseleave="this.classList.remove('active')"
+          >Courses</a
+        >
+        <a
+          href="/register#login"
+          id="login-link"
+          onmouseenter="this.classList.add('active')"
+          onmouseleave="this.classList.remove('active')"
+          >Login</a
+        >
+        <a
+          href="/register#register"
+          id="register-link"
+          onmouseenter="this.classList.add('active')"
+          onmouseleave="this.classList.remove('active')"
+          >Register</a
+        >
+        <a
+          href="#"
+          onclick="location.href=confirm('Do You Want to Sign Out!!')?'/signout':'#'"
+          id="sign-out"
+          style="color: white; background-color: crimson"
+          >Sign Out</a
+        >
+      </div>
+    </nav>
+
     <div>
         <div id="Location_check" class="step">
             <h3>Location Verification</h3>
