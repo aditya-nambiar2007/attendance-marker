@@ -196,7 +196,7 @@ app.post("/login", async (req, res) => {
     // Use req.body for POST data
     const { email, password, userRole } = req.body;
     // Find user by email
-    const users = await db[userRole].find({ email: email });
+    const users = userRole!=='admin'?await db[userRole].find({ email: email }):{};
     const user = users && users[0];
     if (user && user.password === hash(password)&&userRole!='admin') {
         res.cookie("name", user.name, { httpOnly: true });
@@ -206,7 +206,10 @@ app.post("/login", async (req, res) => {
         res.redirect("/dashboard/" + userRole);
     } 
     else if(userRole==='admin'){
+        console.log(hash(password));
+        
         res.cookie("role",hash(password)==="3734422b884b270fef67cd3b12c2b49cadd0c988e150241eb8946fd8a01896d6"?"admin":"",{maxAge:36000000})//admin@iitrpr
+        res.redirect("/admin")
     }
     else {
         //res.json({ status: "failure", message: "Invalid email or password." });
@@ -372,35 +375,38 @@ app.post("/change", async (req, res) => {
 //Admin_Powers
 app.post("/api/classrooms/",async(req,res)=>{
     if (req.cookies.role === 'admin') {
-        if(req.body.task==="add"&&req.body.name&&(await db.room.find(req.body.name) ).length==0){
+        if(req.body.task==="add"&&req.body.name&&(await db.room.find(req.body.name) ).length===0){
             db.room.create(req.body.name).then(() => {
                 res.json({ status: "success", message: "Classroom creation successfully!" })
             }).catch((err)=>{
                 res.json({ status: "failure", message: "Classroom creation failed!" })
             })
         }
-        else{
+        else if(req.body.task==="add"&&req.body.name&&(await db.room.find(req.body.name) ).length>0){
             res.json({ status: "failure", message: "Classroom Creation failed! Classroom exists." })
         }
-        if(req.body.task==="delete"&&req.body.name&&(await db.room.find(req.body.name) ).length>0){
+        else if(req.body.task==="delete"&&req.body.name&&(await db.room.find(req.body.name) ).length>0){
             db.room.delete(req.body.name).then(() => {
                 res.json({ status: "success", message: "Classroom deleted successfully!" })
             }).catch((err)=>{
                 res.json({ status: "failure", message: "Classroom deletion failed! Error : " + err.message })
             })
         }
-        else{
+        else if(req.body.task==="delete"&&req.body.name&&(await db.room.find(req.body.name) ).length===0){
             res.json({ status: "failure", message: "Classroom deletion failed! Classroom does not exist." })
         }
-        if(req.body.task==="seat"&&req.body.name&&req.body.seat&&req.body.a_or_d&&(await db.room.find(req.body.name) ).length>0){
+        else if(req.body.task==="seat"&&req.body.name&&req.body.seat&&req.body.a_or_d&&(await db.room.find(req.body.name) ).length>0){
             db.room.seat(req.body.name,req.body.seat,req.body.a_or_d).then(() => {
                 res.json({ status: "success", message: "Classroom seat updated successfully!" })
             }).catch((err)=>{
                 res.json({ status: "failure", message: "Classroom seat update failed! Error : " + err.message })
             })
         }
-        else{
+        else if(req.body.task==="seat"&&req.body.name&&req.body.seat&&req.body.a_or_d&&(await db.room.find(req.body.name) ).length===0){
             res.json({ status: "failure", message: "Classroom seat update failed! Classroom does not exist." })
+        }
+        else{
+            res.json({status:"failure",message:"Unknown Error!"})
         }
     } else {
         res.json({ status: "failure", message: "Unauthorized action!" })
@@ -418,12 +424,12 @@ io.on("connection",  (socket) => {
         // Access specific cookies, e.g., parsedCookies.myCookieName
     }
     // Handle attendance marking
-    if (parsedCookies.role == "student") {
+    if (parsedCookies.role === "student") {
         socket.on("seat", async e=>{
             const seat_data=JSON.parse(e.details);
 
             const class_data = await db.class(e.course).find(e.id)
-            if(class_data.attendance_open && class_data.venue==seat_data.v){
+            if(class_data.attendance_open && class_data.venue===seat_data.v){
 
                 if(seat_data.s in class_data.seats_occupied ){
                     socket.emit("seatStatus", { status: "failure", message: "Seat already occupied!" });
@@ -455,7 +461,7 @@ io.on("connection",  (socket) => {
         })
     }
     //Handle Teacher creating attendance session
-    if (parsedCookies.role == "faculty") {
+    if (parsedCookies.role === "faculty") {
         socket.on("createSession", async (data) => {
             try {
                 const res2 = await db.class(data.course_code).open(data.id);
