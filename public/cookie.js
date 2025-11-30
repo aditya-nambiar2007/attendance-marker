@@ -43,12 +43,13 @@ function customPromptAll(...params) {
         // Build inputs based on params. Track names to return values in order.
         const names = [];
         params.forEach((p, idx) => {
-            let type = 'text', message = `Input ${idx + 1}`, name = `prompt_${idx}`;
+            let type = 'text', message = `Input ${idx + 1}`, name = `prompt_${idx}`,options=[];
             if (typeof p === 'string') {
                 message = p;
             } else if (Array.isArray(p)) {
                 type = p[0] || 'text';
                 message = p[1] || message;
+                options = p[2] || []
             } else if (typeof p === 'object' && p !== null) {
                 type = p.type || 'text';
                 message = p.message || message;
@@ -57,18 +58,31 @@ function customPromptAll(...params) {
             names.push(name);
 
             const $label = $('<label>').text(message + ':').css({ display: 'block', 'margin-bottom': '6px', 'font-weight': '500' });
-            if (type != 'txtarea') {
-                const $input = $('<input>')
+            if (type === 'select') {
+                const $input = $('<select>')
                     .addClass('promptInput')
-                    .attr({ type, placeholder: message, name })
+                    .attr({ name })
+                    .css({ width: '100%', padding: '8px', 'margin-bottom': '12px', 'box-sizing': 'border-box' });
+                    $input.append($('<option>').attr('value', '').text('--Select--'))
+                    for(const option of options){
+                        const $option = $('<option>').attr('value', option).text(option);
+                        $input.append($option);
+                    }
+                const $p = $('<p>').attr('class', 'promptMessage').append($label, $input)
+                $container.append($p);
+            }
+            else if (type === 'txtarea') {
+                const $input = $('<textarea>')
+                    .addClass('promptInput')
+                    .attr({ placeholder: message, name })
                     .css({ width: '100%', padding: '8px', 'margin-bottom': '12px', 'box-sizing': 'border-box' });
                 const $p = $('<p>').attr('class', 'promptMessage').append($label, $input)
                 $container.append($p);
             }
-            else {
-                const $input = $('<textarea>')
+            else { // Default to a standard input
+                const $input = $('<input>')
                     .addClass('promptInput')
-                    .attr({ placeholder: message, name })
+                    .attr({ type, placeholder: message, name })
                     .css({ width: '100%', padding: '8px', 'margin-bottom': '12px', 'box-sizing': 'border-box' });
                 const $p = $('<p>').attr('class', 'promptMessage').append($label, $input)
                 $container.append($p);

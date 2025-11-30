@@ -1,14 +1,4 @@
 $(async function() {
- alert("Please Click Anywhere To Enter Full Screen Mode!")
-    document.body.addEventListener('click',document.body.requestFullscreen)
-
-document.addEventListener('fullscreenchange',(e)=>{
-    if(!document.fullscreen){
-        alert("This Can Only Be Done In Full Screen Mode!\nPlease Reload The Site");
-        socket.disconnect()
-    }
-
-})
     $("#Code_correction").hide()
     $("#Face_verification").hide()
 const getParam=(param)=>{
@@ -19,67 +9,21 @@ let socket =  io(location.origin);
 socket.emit("details", {id: getParam('id'), course: getParam('course')})
 let time;
 socket.on("time",e=>time=e)
-$("#loc").on('click',()=>{
-    navigator.geolocation.getCurrentPosition((position)=>{
-        if(position.coords.accuracy>30){
-            $("#Location_check>span").text("Location accuracy is low!")
-            console.log(position.coords.accuracy);
-            
-        }
-        else{
-        socket.emit("loc", {id: getParam('id'), course: getParam('course'), location: [position.coords.latitude, position.coords.longitude]})
-        $("#Location_check>span").text("O")
-        socket.on("locStatus", (data) => {
-            if (data.status === "success") {
-                $("#Location_check>span").text("Location Verified! &#10004;")
-                $("#Location_check>span").css("color","green")
-                setTimeout(() => {
-                    $("#Location_check").slideUp()
-                    $("#Code_correction").slideDown()
-                }, 100);
 
-            } else {
-                $("#Location_check>span").text("Location Mismatch! &#10006;")
-                $("#Location_check>span").css("color","red")
-            }
-        }
-    )
-}
-    },()=>{}, {enableHighAccuracy: true, timeout: 5000, maximumAge: 0});
-})
-
-$("#code_submit").on('click',()=>{
-    const code=$("#code").val()
-    socket.emit("code", {id: getParam('id'), course: getParam('course'), code: code})
-    socket.on("codeStatus", (data) => {
-        if (data.status === "success") {
-            alert("Code verified, starting face verification...")
-            setTimeout(() => {
-                    $("#Code_correction").slideUp()
-                    $("#Face_verification").slideDown()
-                }, 100);
-            
-        }
-        else{
-            alert(data.message)
-        }
-    })
-})
-let gesture;
-$("QR_check").on('click',()=>{
+$("#Qr_check").on('click',()=>{
     const qrCodeScanner = new Html5Qrcode("qr_reader");
     qrCodeScanner.start(
       { facingMode: "environment" }, // Use rear camera
       { fps: 10, qrbox: 250 },
       (decodedText) => {
-        alert(`QR Code Scanned: ${decodedText}`);
-        socket.emit("code", {id: getParam('id'), course: getParam('course'), code: decodedText})
-        socket.on("codeStatus", (data) => {
-            if (data.status === "success") {
-                alert("Code verified, starting face verification...")
+          alert(`QR Code Scanned: ${decodedText}`);
+          socket.emit("seat", {id: getParam('id'), course: getParam('course'), details: decodedText})
+          socket.on("seatStatus", (data) => {
+              if (data.status === "success") {
+                alert("Seat verified, starting face verification...")
                 gesture=data.gesture;
                 setInterval(() => {
-                        $("#Code_correction").slideUp()
+                    $("#Code_correction").slideUp()
                         $("#Face_verification").slideDown()
                     }, 100);
                 
@@ -89,17 +33,17 @@ $("QR_check").on('click',()=>{
             }
         })
         qrCodeScanner.stop();
-      },
-      (error) => {
+    },
+    (error) => {
         console.warn(`Error scanning: ${error}`);
-      }
-    );
+    }
+);
 })
 
 
-// ...existing code...
 
 // Initialize webcam and gesture recognition
+let gesture;
 async function initWebcam() {
     const video = document.createElement('video');
     const videoContainer = document.getElementById('video-container');

@@ -14,32 +14,33 @@ const cookie = require('cookie-parser');
 const ck = require("cookie")
 //const mailer=require("nodemailer")
 const PORT = 3000;
-const compare_faces = (img1, img2) => { 
+const compare_faces = (img1, img2) => {
     let prediction;
-    const req=http.request({
-        hostname:"localhost",
-        port:3000,
-        path:"/predict",
-        method:"POST",
-        headers:{
-            "Content-Type":"application/json"
+    const req = http.request({
+        hostname: "localhost",
+        port: 3000,
+        path: "/predict",
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
         }
-        }
-    ,res=>{
-        let response;
-        res.on("data",(data)=>{
-            response=data.toString()
+    }
+        , res => {
+            let response;
+            res.on("data", (data) => {
+                response = data.toString()
+            })
+            res.on("end", () => {
+                prediction = response;
+            })
         })
-        res.on("end",()=>{
-            prediction=response;
-        })
-    })
-    req.write(JSON.stringify({img1:img1,img2:img2}))
+    req.write(JSON.stringify({ img1: img1, img2: img2 }))
     req.end()
-    req.on("error",(err)=>{
+    req.on("error", (err) => {
         console.log(err)
     })
-    return prediction; }
+    return prediction;
+}
 
 app.use(express.json());
 app.use(cookie())
@@ -74,6 +75,31 @@ app.get("/content/pfps", async (req, res) => {
 }
 )
 
+app.get("/admin", (req, res) => {
+    if(req.cookies.role==="admin"){
+        res.sendFile(path.join(__dirname, "public", "/admin.html"));
+    }
+    else{
+        res.sendFile(path.join(__dirname, "public", "/admin_login.html"));
+    }
+})
+
+app.get("/api/rooms", async (req, res) => {
+    const data = await db.room.find({})
+    let response = []
+    for (let i = 0; i < data.length; i++) {
+        response.push({ name: data[i].name })
+    }
+    res.json(response);
+})
+
+app.get("/api/room_details", async (req, res) => {
+    const data = await db.room.find(req.query)
+    data[0].capacity = data[0].seats.length
+    res.json(data[0]);
+})
+
+
 app.get("/signout", (req, res) => {
     res.clearCookie("name")
     res.clearCookie("email")
@@ -94,6 +120,9 @@ app.get("/cookie", (req, res) => {
 app.get("/dashboard/faculty", (req, res) => {
     res.sendFile(path.join(__dirname, "public", "/faculty/faculty.html"));
 });
+app.get("/cred_change", async (req, res) => {
+    res.sendFile(path.join(__dirname, "public", "/change.html"));
+})
 // Student dashboard route
 app.get("/dashboard/student", (req, res) => {
     res.sendFile(path.join(__dirname, "public", "/student/student.html"));
@@ -169,13 +198,17 @@ app.post("/login", async (req, res) => {
     // Find user by email
     const users = await db[userRole].find({ email: email });
     const user = users && users[0];
-    if (user && user.password === hash(password)) {
+    if (user && user.password === hash(password)&&userRole!='admin') {
         res.cookie("name", user.name, { httpOnly: true });
         res.cookie("email", user.email, { httpOnly: true });
         res.cookie("role", userRole, { httpOnly: true });
         res.cookie("id", user.id, { httpOnly: true });
         res.redirect("/dashboard/" + userRole);
-    } else {
+    } 
+    else if(userRole==='admin'){
+        res.cookie("role",hash(password)==="3734422b884b270fef67cd3b12c2b49cadd0c988e150241eb8946fd8a01896d6"?"admin":"",{maxAge:36000000})//admin@iitrpr
+    }
+    else {
         //res.json({ status: "failure", message: "Invalid email or password." });
         res.redirect("/register#loginError");
     }
@@ -219,12 +252,11 @@ app.post("/api/course", async (req, res) => {
     console.table(req.cookies)
     if (req.body.task === "create_course") {
         let course_code;
-        while (1) {
+        let isUnique = false;
+        while (!isUnique) {
             course_code = random.string.create(6, "ABCDEFGHIJKLMNOPQRSTUVWXYZ") + random.int(100, 999)
-            value = false
             const x = await db.course.find({ course_code: course_code })
-            if (x.length == 0) value = true;
-            if (value) break;
+            if (x.length === 0) isUnique = true;
         }
         await db.course.create({ course_code: course_code, course_name: req.body.course_name, faculty_name: req.cookies.name, faculty_email: req.cookies.email, students: [] })
         await db.faculty.update_courses(req.cookies.id, course_code, 'add')
@@ -261,7 +293,7 @@ app.post("/api/course", async (req, res) => {
 app.post("/api/class", async (req, res) => {
 
     if (req.body.task === "create_class") {
-        const id = await db.class(req.body.course_code).create({ start: req.body.start, duration: req.body.duration })
+        const id = await db.class(req.body.course_code).create({ start: req.body.start, duration: req.body.duration, venue: req.body.venue })
         if (id) {
             res.json({ status: "success", message: "Class created successfully!" });
         }
@@ -287,10 +319,96 @@ app.post("/api/class", async (req, res) => {
         await db.class(req.body.course_code).attendance(req.body.class_id, { email: details.email, id: details.id }) ? res.json({ status: "success", message: "Attendance marked successfully!" }) : res.json({ status: "failure", message: "Attendance marking failed!" });
         return;
     }
+    else if (req.body.task === "update_venue") {
+        await db.class(req.body.course_code).location(req.body.class_id, req.body.venue) ? res.json({ status: "success", message: "Venue updated successfully!" }) : res.json({ status: "failure", message: "Venue update failed!" });
+        return;
+    }
+    else if (req.body.task === "absentism") {
+        await db.class(req.body.course_code).mark_seat_absent(req.body.class_id, req.body.seat) ? res.json({ status: "success", message: "Seat marked absent successfully!" }) : res.json({ status: "failure", message: "Seat marking absent failed!" });
+        return;
+
+    }
+})
+app.post("/change", async (req, res) => {
+    const { email, password, fullName, pfp } = req.body;
+    const userId = req.cookies.id;
+    const userRole = req.cookies.role; // Assuming role is stored in cookies
+
+    if (!userRole || !db[userRole]) {
+        return res.status(400).send("Invalid user role. <a href='/cred_change'>Go back</a>");
+    }
+
+    try {
+        const existingUser = await db[userRole].find({ email: email });
+        if (existingUser.length > 0 && existingUser[0].id.toString() !== userId) {
+            return res.status(400).send("Email is already in use by another account. <a href='/cred_change'>Go back</a>");
+        }
+
+        let updateData = {};
+
+        if (fullName) {
+            updateData.name = fullName;
+        }
+        if (email) {
+            updateData.email = email;
+        }
+        if (pfp) {
+            updateData.Image = pfp;
+        }
+        if (password) {
+            updateData.password = hash(password);
+        }
+
+        const updatedUser = await db[userRole].update(userId, updateData);
+        res.cookie("name", updatedUser.name, { httpOnly: true });
+        res.cookie("email", updatedUser.email, { httpOnly: true });
+        res.redirect("/dashboard/" + userRole);
+    } catch (error) {
+        console.error("Error updating user:", error);
+        res.status(500).send("An error occurred while updating your profile. <a href='/cred_change'>Go back</a>");
+    }
+});
+
+//Admin_Powers
+app.post("/api/classrooms/",async(req,res)=>{
+    if (req.cookies.role === 'admin') {
+        if(req.body.task==="add"&&req.body.name&&(await db.room.find(req.body.name) ).length==0){
+            db.room.create(req.body.name).then(() => {
+                res.json({ status: "success", message: "Classroom creation successfully!" })
+            }).catch((err)=>{
+                res.json({ status: "failure", message: "Classroom creation failed!" })
+            })
+        }
+        else{
+            res.json({ status: "failure", message: "Classroom Creation failed! Classroom exists." })
+        }
+        if(req.body.task==="delete"&&req.body.name&&(await db.room.find(req.body.name) ).length>0){
+            db.room.delete(req.body.name).then(() => {
+                res.json({ status: "success", message: "Classroom deleted successfully!" })
+            }).catch((err)=>{
+                res.json({ status: "failure", message: "Classroom deletion failed! Error : " + err.message })
+            })
+        }
+        else{
+            res.json({ status: "failure", message: "Classroom deletion failed! Classroom does not exist." })
+        }
+        if(req.body.task==="seat"&&req.body.name&&req.body.seat&&req.body.a_or_d&&(await db.room.find(req.body.name) ).length>0){
+            db.room.seat(req.body.name,req.body.seat,req.body.a_or_d).then(() => {
+                res.json({ status: "success", message: "Classroom seat updated successfully!" })
+            }).catch((err)=>{
+                res.json({ status: "failure", message: "Classroom seat update failed! Error : " + err.message })
+            })
+        }
+        else{
+            res.json({ status: "failure", message: "Classroom seat update failed! Classroom does not exist." })
+        }
+    } else {
+        res.json({ status: "failure", message: "Unauthorized action!" })
+    }
 })
 
 // Socket.io connection
-io.on("connection", (socket) => {
+io.on("connection",  (socket) => {
     console.log("A user connected:", socket.id);
     let steps = [false, false, false]
     let parsedCookies;
@@ -301,42 +419,38 @@ io.on("connection", (socket) => {
     }
     // Handle attendance marking
     if (parsedCookies.role == "student") {
-        socket.on("details",async data=>{
-            socket.emit("time",(await db.class(data.course_code).find(data.id))[0].attendance_date)
-        })
-        socket.on("loc", async (data) => {
-            let data_tr = await db.class(data.course_code).find(data.id)
-            data_tr = data_tr.location
-            if ((data_tr[0] - data.location[0]) ** 2 + (data_tr[1] - data.location[1] ** 2) < 0.0009 ** 2) {
-                socket.emit("locStatus", { status: "success", message: "Location verified" });
-                steps[0] = true
-            } else {
-                socket.emit("locStatus", { status: "failure", message: "Location mismatch" });
-            }
-        });
-        socket.on("code", async (code) => {
-            const res = await db.class(code.course_code).find(code.id);
+        socket.on("seat", async e=>{
+            const seat_data=JSON.parse(e.details);
 
-            if (steps[0] && res.code == code.code) {
-                socket.emit("codeStatus", { status: "success", message: "Code verified",gesture:random.array.sample(["thumb_up", "thumb_down", "victory", "point_up", "open_palm", "closed_fist"],1)[0] });
-                steps[1] = true
-            } else {
-                socket.emit("codeStatus", { status: "failure", message: "Incorrect code" });
+            const class_data = await db.class(e.course).find(e.id)
+            if(class_data.attendance_open && class_data.venue==seat_data.v){
+
+                if(seat_data.s in class_data.seats_occupied ){
+                    socket.emit("seatStatus", { status: "failure", message: "Seat already occupied!" });
+                }
+                else if(seat_data.s in class_data.seats_unoccupied){
+                    socket.emit("seatStatus",{ status: "failure", message: "Seat already marked unoccupied!" })
+                }
+                else{
+                    socket.emit("seatStatus", { status: "success", message: "Seat verified!", gesture: random.int(1,7) });
+                }
+
             }
         })
-        socket.on("face", async (data) => {
-            const details = await db.student.find({ email: parsedCookies.email })
-            console.table(details);
-            const face_verified = compare_faces(data.imgUrl, details[0].Image)
-            if (steps[0] && steps[1] && face_verified) {
-                await db.class(data.course_code).attendance(data.id, details)
-                steps[2] = true
-            }
-
-            if (steps[0] && steps[1] && steps[2]) {
-                socket.emit("marked", { status: "success", message: "Attendance marked successfully!" });
+        socket.on("verify",async data=>{
+            const saved_face=await db.student.id(parsedCookies.id)
+            if(compare_faces(saved_face.Image,data.image)){
+            const res = await db.class(data.course_code).attendance(data.id, {id:parsedCookies.id,email:parsedCookies.email});
+            
+            if (res) {
+                socket.emit("verificationStatus", { status: "success", message: "Attendance marked successfully!" });
             } else {
-                socket.emit("marked", { status: "failure", message: "Attendance marking failed. Please try again." });
+                socket.emit("verificationStatus", { status: "failure", message: "Attendance marking failed!" });        
+            }
+        }
+        else{
+                socket.emit("verificationStatus", { status: "failure", message: "Face Recognition failed!" });        
+
             }
         })
     }
@@ -344,9 +458,8 @@ io.on("connection", (socket) => {
     if (parsedCookies.role == "faculty") {
         socket.on("createSession", async (data) => {
             try {
-                const res1 = await db.class(data.course_code).location(data.id, data.location);
-                const res2 = await db.class(data.course_code).code(data.id);
-                if (res1 && res2) {
+                const res2 = await db.class(data.course_code).open(data.id);
+                if (res2) {
                     socket.emit("sessionCreated", { status: "success", message: "Attendance session created!", code: res2 });
                 } else {
                     socket.emit("sessionCreated", { status: "failure", message: "Attendance session creation failed!" });
@@ -372,13 +485,8 @@ io.on("connection", (socket) => {
 
                 }
                 console.table(data)
+                data.details.seat = null;
                 const res = await db.class(data.course_code).attendance(data.id, data.details);
-                if (res) {
-                    socket.emit("attendance", { status: "success", message: "Attendance marked successfully!" });
-                } else {
-                    socket.emit("attendance", { status: "failure", message: "Attendance marking failed!" });
-
-                }
             }
             catch (error) {
                 console.error(error);
@@ -394,4 +502,4 @@ io.on("connection", (socket) => {
 // Start the server
 server.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
-});
+})

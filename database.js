@@ -39,14 +39,21 @@ const classSchema = new mongoose.Schema({
     start: { type: Date, required: true },
     duration: { type: Number, required: true },
     attendance: [Map],
+    seats_occupied: [String],
+    seats_unoccupied: [String],
     attendance_date: { type: Date },
-    location: [Number],
-    code: String,
+    venue: String,
+    attendance_open: {type:Boolean,default:false},
     status: { type: String, required: true, default: "pending", enum: ["pending", "completed", "cancelled"] },
     Notes: String
 })
 
+const roomSchema = new mongoose.Schema({
+    name: { type: String, required: true },
+    seats: [String],
+})
 
+const Room = mongoose.model('Room', roomSchema)
 const Student = mongoose.model('Student', studentSchema)
 const Faculty = mongoose.model('Faculty', facultySchema)
 const Course = mongoose.model('Course', courseSchema)
@@ -56,6 +63,31 @@ const OTP = mongoose.model('OTP', OTPSchema)
 
 
 const exports = {
+    room: {
+        create: async (name) => {
+            const room = new Room({ name })
+            return await room.save()
+        },
+        update: async (name, data) => {
+
+            return await Room.findOneAndUpdate({ name: name }, data, { new: true });
+        },
+        seat: async (name, seat, a_or_d) => {
+            if(a_or_d=='add'){
+                return await Room.findOneAndUpdate({ name: name }, { $addToSet: { seats: seat } }, { new: true });
+            }
+            else if(a_or_d=='delete'){
+                return await Room.findOneAndUpdate({ name: name }, { $pull: { seats: seat } }, { new: true });
+            }
+        },
+        delete: async (name) => {
+            return await Room.deleteOne({ name: name })
+        },
+        find: async (name) => {
+            return await Room.find({ name: name })
+        },
+    },
+
     student: {
         create: async (data) => {
             const student = new Student(data)
@@ -67,6 +99,9 @@ const exports = {
         },
         id: async id => {
             return await Student.findById(id)
+        },
+        update: async (id, data) => {
+            return await Student.findByIdAndUpdate(id, data, { new: true });
         },
         update_img: async (id, img) => {
             return await Student.findByIdAndUpdate(id, { Image: img })
@@ -98,6 +133,9 @@ const exports = {
         id: async id => {
             return await Faculty.findById(id)
         },
+        update: async (id, data) => {
+            return await Faculty.findByIdAndUpdate(id, data, { new: true });
+        },
         update_courses: async (id, course, a_or_d) => {
             const data = await Faculty.findById(id)
             if (a_or_d == 'add') {
@@ -116,9 +154,9 @@ const exports = {
 
     course: {
         create: async (data) => {
-            data.students = []
-            const course = new Course(data)
-            return await course.save()
+            const courseData = { ...data, students: [] };
+            const course = new Course(courseData);
+            return await course.save();
         },
         find: async (query) => {
             return query.id ? await Course.findById(query.id) : await Course.find({ course_code: query.code })
@@ -145,33 +183,40 @@ const exports = {
             return { msg: "Course does not exist" }
         }
         return {
-            create: async data => { data.course_code = course_code;const sav = new Class(data); sav.save(); return sav.id },
-            location: async (id, location) => { return await Class.findByIdAndUpdate(id, { location: location }) },
-            code: async (id) => {
-                const code=Math.floor(100000 + Math.random() * 900000)
-                await Class.findByIdAndUpdate(id, { code: code });
-                setTimeout(async () => { await Class.findByIdAndUpdate(id, { code: null }) }, 20 * 1000)
-                return code;
+            create: async data => { data.course_code = course_code; const sav = new Class(data); sav.save(); return sav.id },
+            location: async (id, location) => { return await Class.findByIdAndUpdate(id, { venue: location }) },
+            open: async (id) => {
+                await Class.findByIdAndUpdate(id, { attendance_open: true });
+                setTimeout(async () => { await Class.findByIdAndUpdate(id, { attendance_open: false }) }, 30 * 1000)
+                return true;    
             },
-            ret_all: async () => { return await Class.find({course_code:course_code}) },
+            ret_all: async () => { return await Class.find({ course_code: course_code }) },
             find: async id => { return await Class.findById(id) },
             attendance: async (id, details) => {
-                const data = new Map([["email", details.email], ["id", details.id]])
+                const data = new Map([["email", details.email], ["id", details.id], ["seat", details.seat]]);
+                if (details.seat) {
+                    await Class.findByIdAndUpdate(id, { $addToSet: { seats_occupied: details.seat } })
+                }
                 return await Class.findByIdAndUpdate(id, { $addToSet: { attendance: data } })
+            },
+            mark_seat_absent: async (id, seat) => {
+                await Class.findByIdAndUpdate(id, { $pull: { attendance: ["seat", seat] } })
+                await Class.findByIdAndUpdate(id, { $pull: { seats_occupied: seat } })
+                return await Class.findByIdAndUpdate(id, { $addToSet: { seats_unoccupied: seat } })
             },
             notes: async (id, notes) => {
                 return await Class.findByIdAndUpdate(id, { Notes: notes })
             },
             cancel: async id => {
-                console.log(await Class.findById(id)," is being cancelled")
+                console.log(await Class.findById(id), " is being cancelled")
                 return await Class.findByIdAndUpdate(id, { status: "cancelled" })
             },
-            date:async(id,date)=>{
-                if(date)
-                {await Class.findByIdAndUpdate(id,{attendance_date:date})
-                 return;
+            date: async (id, date) => {
+                if (date) {
+                    await Class.findByIdAndUpdate(id, { attendance_date: date })
+                    return;
                 }
-                else{
+                else {
                     return await Class.findById(id).attendance_date
                 }
             },
