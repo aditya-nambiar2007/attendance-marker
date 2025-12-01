@@ -77,7 +77,7 @@ app.get("/content/pfps", async (req, res) => {
 
 app.get("/admin", (req, res) => {
 
-    if(req.cookies.role==="admin"&&req.query.room){
+    if(req.cookies.role==="admin"&&req.query.room&&req.query.room!='null'){
         res.sendFile(path.join(__dirname, "public/admin", "/admin_seat_add.html"));
     }
     else if(req.cookies.role==="admin"&&!req.query.room){
