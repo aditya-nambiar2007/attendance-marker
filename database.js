@@ -64,13 +64,24 @@ const OTP = mongoose.model('OTP', OTPSchema)
 
 const exports = {
     room: {
-        create: async (name) => {
-            const room = new Room({ name })
-            return await room.save()
+        create: async (input) => {
+            // Accept either a string name or an object with fields for room
+            if (typeof input === 'string') {
+                const room = new Room({ name: input });
+                return await room.save();
+            }
+            else if (input && typeof input === 'object') {
+                const room = new Room(input);
+                return await room.save();
+            }
+            throw new Error('Invalid input for room.create');
         },
-        update: async (name, data) => {
-
-            return await Room.findOneAndUpdate({ name: name }, data, { new: true });
+        update: async (nameOrQuery, data) => {
+            // nameOrQuery can be a string (room name) or a query object
+            if (typeof nameOrQuery === 'string') {
+                return await Room.findOneAndUpdate({ name: nameOrQuery }, data, { new: true });
+            }
+            return await Room.findOneAndUpdate(nameOrQuery, data, { new: true });
         },
         seat: async (name, seat, a_or_d) => {
             if(a_or_d=='add'){
@@ -80,11 +91,22 @@ const exports = {
                 return await Room.findOneAndUpdate({ name: name }, { $pull: { seats: seat } }, { new: true });
             }
         },
-        delete: async (name) => {
-            return await Room.deleteOne({ name: name })
+        delete: async (nameOrQuery) => {
+            // Accept either a string name or a query object
+            if (typeof nameOrQuery === 'string') {
+                return await Room.deleteOne({ name: nameOrQuery });
+            }
+            return await Room.deleteOne(nameOrQuery);
         },
-        find: async (name) => {
-            return await Room.find({ name: name })
+        find: async (nameOrQuery) => {
+            // Accept either a string (name) or a query object
+            if (typeof nameOrQuery === 'string') {
+                return await Room.find({ name: nameOrQuery });
+            }
+            if (!nameOrQuery) {
+                return await Room.find({});
+            }
+            return await Room.find(nameOrQuery);
         },
     },
 

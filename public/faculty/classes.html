@@ -424,10 +424,21 @@ margin-block-end: 0;
         $("#course-name-header").text(get_query("name"));
 
         $("#schedule").click(async function () {
+          let options=[]
+
+            $.get('/api/rooms', function(data) {
+                $('#classroom-list').empty();
+                data.forEach(function(classroom) {
+                    $('#classroom-list').append(
+                        options.push(classroom.name)
+                    );
+                });
+            });
+
           const prompt = await getPromptAll(
             ["datetime-local", "Start"],
             ["number", "Duration in minutes"],
-            ["select", "Venue", ["Online","Room 101","Room 102","Auditorium"]]
+            ["select", "Venue", options]
           );
           console.log(prompt);
           $.post(

@@ -76,13 +76,18 @@ app.get("/content/pfps", async (req, res) => {
 )
 
 app.get("/admin", (req, res) => {
-    if(req.cookies.role==="admin"){
-        res.sendFile(path.join(__dirname, "public", "/admin.html"));
+
+    if(req.cookies.role==="admin"&&req.query.room){
+        res.sendFile(path.join(__dirname, "public/admin", "/admin_seat_add.html"));
+    }
+    else if(req.cookies.role==="admin"&&!req.query.room){
+        res.sendFile(path.join(__dirname, "public/admin", "/admin.html"));
     }
     else{
-        res.sendFile(path.join(__dirname, "public", "/admin_login.html"));
+        res.sendFile(path.join(__dirname, "public/admin", "/admin_login.html"));
     }
 })
+
 
 app.get("/api/rooms", async (req, res) => {
     const data = await db.room.find({})
@@ -94,7 +99,7 @@ app.get("/api/rooms", async (req, res) => {
 })
 
 app.get("/api/room_details", async (req, res) => {
-    const data = await db.room.find(req.query)
+    const data = await db.room.find(req.query.room)
     data[0].capacity = data[0].seats.length
     res.json(data[0]);
 })
@@ -375,6 +380,7 @@ app.post("/change", async (req, res) => {
 //Admin_Powers
 app.post("/api/classrooms/",async(req,res)=>{
     if (req.cookies.role === 'admin') {
+        console.table(req.body)
         if(req.body.task==="add"&&req.body.name&&(await db.room.find(req.body.name) ).length===0){
             db.room.create(req.body.name).then(() => {
                 res.json({ status: "success", message: "Classroom creation successfully!" })

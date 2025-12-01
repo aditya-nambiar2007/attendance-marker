@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <title>Admin - Manage Classrooms</title>
+    <title>Admin - Manage Seats</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -71,11 +71,11 @@
         .delete-btn:hover {
             background-color: #c82333;
         }
-        #classroom-list {
+        #seat-list {
             list-style-type: none;
             padding: 0;
         }
-        #classroom-list li {
+        #seat-list li {
             background-color: #f9f9f9;
             padding: 15px;
             border: 1px solid #ddd;
@@ -84,78 +84,92 @@
             justify-content: space-between;
             align-items: center;
         }
-        #classroom-list li:first-child {
+        #seat-list li:first-child {
             border-top-left-radius: 4px;
             border-top-right-radius: 4px;
         }
-        #classroom-list li:last-child {
+        #seat-list li:last-child {
             border-bottom-left-radius: 4px;
             border-bottom-right-radius: 4px;
+        }
+        .url-a{
+            background-color: #f9f9f9;
+            color:navy;
+        }
+        .url-a:hover{
+        text-decoration: underline;
         }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1>Admin - Manage Classrooms</h1>
+        <h1>Admin - Manage Seats</h1>
 
-        <!-- Add Classroom Section -->
-        <section class="add-classroom">
-            <h2>Add New Classroom</h2>
-            <form id="addClassroomForm" onsubmit="return false;">
+        <!-- Add Seat Section -->
+        <section class="add-seat">
+            <form id="addSeatForm" onsubmit="return false;">
                 <div class="form-group">
-                    <label for="classroomName">Classroom Name:</label>
-                    <input type="text" id="classroomName" name="classroomName" placeholder="Room Number" required>
+                      <input type="text" id="seatName" name="seatName" placeholder="Room Name" required>
                 </div>
-                <button type="submit" onclick="addClassroom">Add Classroom</button>
+                <button type="submit" id="add_class">Add Seat</button>
             </form>
         </section>
 
-        <!-- Existing Classrooms Section -->
-        <section class="existing-classrooms">
-            <h2>Existing Classrooms</h2>
-            <ul id="classroom-list">
+        <!-- Existing Seats Section -->
+        <section class="existing-seats">
+            <h2>Existing Seats</h2>
+            <ul id="seat-list">
                 <!-- Example Item. This would be populated dynamically. -->
             </ul>
         </section>
     </div>
-<script>
+    <script>
+        const room=new URLSearchParams(location.href).get('room') 
+        const deleteSeat = (name) => {
+            if (confirm('Are you sure you want to delete this seat?')) {
+            $.ajax({
+                url: `/api/seats/`,
+                type: 'POST',
+                data: { name: name,room:room, task: 'seat',a_or_d:'delete' },
+                success: function(result) {
+                    alert('Seat deleted successfully.');
+                    loadSeats(); // Refresh the list
+                },
+                failure: function(err) {
+                    alert(err.message);
+                }
+            });
+        }
+    };
     $(document).ready(function() {
-        // Function to load existing classrooms
-        function loadClassrooms() {
-            $.get('/api/classrooms', function(data) {
-                $('#classroom-list').empty();
-                data.forEach(function(classroom) {
-                    $('#classroom-list').append(
+        // Function to load existing seats
+        window.loadSeats=()=> {
+            $.get('/api/room_details?room='+room, function(data) {
+                $('#seat-list').empty();
+                data.seats.forEach(function(seat) {
+                    $('#seat-list').append(
                         `<li>    
-                            <a data-id="${classroom.id}" onclick="location.href='?room='+${classroom.name}">${classroom.name}<button onclick="deleteClassroom('${classroom.name}')">Delete</button></a>
+                            <button class="url-a" data-id="${seat}" onclick="location.href='?room=${seat}'">${seat}</button><button class="delete-btn" onclick="deleteSeat('${seat.name}')">Delete</button>
                         </li>`
                     );
                 });
             });
             // Placeholder: Replace with actual data fetching logic
         }
-        // Handle form submission to add a new classroom
-        $('#addClassroomForm').on('submit', function() {
-            const classroomName = $('#classroomName').val().trim();
-            if (classroomName) {
-                $.post('/api/classrooms', { name: classroomName }, function(response) {
-                    $('#classroomName').val(''); // Clear input
-                    loadClassrooms(); // Refresh the list
-                });
-            }
-        });
-        // Load classrooms on page load
-        loadClassrooms();
-        const deleteClassroom = (name) => {
-            if (confirm('Are you sure you want to delete this classroom?')) {
+        // Handle form submission to add a new seat
+        $('#addSeatForm').on('submit', addSeat)        // Load seats on page load
+        loadSeats();
+        const addSeat = () => {
+            const name = $('#seatName').val().trim();
+            if (name) {
                 $.ajax({
-                    url: `/api/classrooms/`,
+                    url: `/api/seats/`,
                     type: 'POST',
-                    data: { name: name, task: 'Delete' },
+                    data: { name: name, room:room,task: 'seat', a_or_d:'add' },
                     success: function(result) {
-                        alert('Classroom deleted successfully.');
-                        loadClassrooms(); // Refresh the list
+                        alert('Seat created successfully.');
+                        loadSeats(); // Refresh the list
                     },
                     failure: function(err) {
                         alert(err.message);
@@ -163,17 +177,7 @@
                 });
             }
         };
-        const addClassroom = () => {
-            const classroomName = $('#classroomName').val().trim();
-            if (classroomName) {
-                $.post('/api/classrooms', { name: classroomName }, function(response) {
-                    $('#classroomName').val(''); // Clear input
-                    loadClassrooms(); // Refresh the list
-                },function(err){
-                    alert(err.message);
-                });
-            }
-        };
+        $('#add_class').on('click', addSeat);
 
     });
 </script>
