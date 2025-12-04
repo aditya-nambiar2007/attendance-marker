@@ -465,10 +465,11 @@ io.on("connection", (socket) => {
             const class_data = await db.class(e.course).find(e.id)
             if (class_data.attendance_open && class_data.venue === seat_data.v) {
 
-                if (seat_data.s in class_data.seats_occupied) {
+                // Use includes to check membership in arrays
+                if (Array.isArray(class_data.seats_occupied) && class_data.seats_occupied.includes(seat_data.s)) {
                     socket.emit("seatStatus", { status: "failure", message: "Seat already occupied!" });
                 }
-                else if (seat_data.s in class_data.seats_unoccupied) {
+                else if (Array.isArray(class_data.seats_unoccupied) && class_data.seats_unoccupied.includes(seat_data.s)) {
                     socket.emit("seatStatus", { status: "failure", message: "Seat already marked unoccupied!" })
                 }
                 else {
@@ -496,6 +497,23 @@ io.on("connection", (socket) => {
     }
     //Handle Teacher creating attendance session
     if (parsedCookies.role === "faculty") {
+        // Allow faculty to toggle seats via socket (optional)
+        socket.on('toggleSeat', async (data) => {
+            // data: { course_code, class_id, seat, action: 'occupy'|'vacate' }
+            if (!data || !data.class_id || !data.seat || !data.action) return;
+            try {
+                if (data.action === 'occupy') {
+                    await db.class(data.course_code).mark_seat_occupied(data.class_id, data.seat);
+                    socket.emit('seatToggled', { status: 'success', message: 'Seat marked occupied', seat: data.seat });
+                } else if (data.action === 'vacate') {
+                    await db.class(data.course_code).mark_seat_absent(data.class_id, data.seat);
+                    socket.emit('seatToggled', { status: 'success', message: 'Seat marked unoccupied', seat: data.seat });
+                }
+            } catch (err) {
+                socket.emit('seatToggled', { status: 'failure', message: err.message });
+            }
+        });
+
         socket.on("createSession", async (data) => {
             try {
                 const res2 = await db.class(data.course_code).open(data.id);

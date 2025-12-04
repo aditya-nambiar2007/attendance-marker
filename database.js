@@ -226,6 +226,12 @@ const exports = {
                 await Class.findByIdAndUpdate(id, { $pull: { seats_occupied: seat } })
                 return await Class.findByIdAndUpdate(id, { $addToSet: { seats_unoccupied: seat } })
             },
+            mark_seat_occupied: async (id, seat) => {
+                // Add seat to occupied and remove from unoccupied
+                await Class.findByIdAndUpdate(id, { $addToSet: { seats_occupied: seat } });
+                await Class.findByIdAndUpdate(id, { $pull: { seats_unoccupied: seat } });
+                return await Class.findByIdAndUpdate(id, { $addToSet: { seats_occupied: seat } });
+            },
             notes: async (id, notes) => {
                 return await Class.findByIdAndUpdate(id, { Notes: notes })
             },
