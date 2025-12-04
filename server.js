@@ -77,13 +77,13 @@ app.get("/content/pfps", async (req, res) => {
 
 app.get("/admin", (req, res) => {
 
-    if(req.cookies.role==="admin"&&req.query.room&&req.query.room!='null'){
+    if (req.cookies.role === "admin" && req.query.room && req.query.room != 'null') {
         res.sendFile(path.join(__dirname, "public/admin", "/admin_seat_add.html"));
     }
-    else if(req.cookies.role==="admin"&&!req.query.room){
+    else if (req.cookies.role === "admin" && !req.query.room) {
         res.sendFile(path.join(__dirname, "public/admin", "/admin.html"));
     }
-    else{
+    else {
         res.sendFile(path.join(__dirname, "public/admin", "/admin_login.html"));
     }
 })
@@ -168,9 +168,37 @@ app.get("/courseDetails", async (req, res) => {
         const dat = await db.course.find({ course_code: req.query.course_code });
         if (!dat) return res.status(404).json({ error: "Course not found" })
         data = await db.class(req.query.course_code).ret_all()
+        data = JSON.parse(JSON.stringify(data));
         data.sort((a, b) => b.start - a.start)
-    }
-    catch (err) {
+        data.forEach(e => {
+            if (req.cookies.role === "student") {
+                e.attendance_marked = false;
+                // e.attendance entries may be stored as Map-like objects (with .get)
+                // or plain objects. Normalize access to support both shapes.
+                if (Array.isArray(e.attendance)) {
+                    for (const entry of e.attendance) {                      
+                        let entryId, entryEmail;
+                        if (entry && typeof entry.get === 'function') {
+                            entryId = entry.get('id');
+                            entryEmail = entry.get('email');
+                        } else if (entry && typeof entry === 'object') {
+                            entryId = entry.id || entry.get && entry.get('id');
+                            entryEmail = entry.email || entry.get && entry.get('email');
+                        }
+                        if (entryId && String(entryId) === String(req.cookies.id) && entryEmail && String(entryEmail) === String(req.cookies.email)) {
+                            e.attendance_marked = true;
+                            console.log(e,"\n",entryId," ",entryEmail,"1")
+                            break;
+                        }
+                    }
+                }
+                e.strength=e.attendance.length
+                delete e.attendance;
+                delete e.seats_occupied;
+                delete e.seats_unoccupied;
+            }
+        });
+    } catch (err) {
         console.error(err)
         res.status(500).json({ error: "Error Finding Course" })
     }
@@ -201,19 +229,19 @@ app.post("/login", async (req, res) => {
     // Use req.body for POST data
     const { email, password, userRole } = req.body;
     // Find user by email
-    const users = userRole!=='admin'?await db[userRole].find({ email: email }):{};
+    const users = userRole !== 'admin' ? await db[userRole].find({ email: email }) : {};
     const user = users && users[0];
-    if (user && user.password === hash(password)&&userRole!='admin') {
+    if (user && user.password === hash(password) && userRole != 'admin') {
         res.cookie("name", user.name, { httpOnly: true });
         res.cookie("email", user.email, { httpOnly: true });
         res.cookie("role", userRole, { httpOnly: true });
         res.cookie("id", user.id, { httpOnly: true });
         res.redirect("/dashboard/" + userRole);
-    } 
-    else if(userRole==='admin'){
+    }
+    else if (userRole === 'admin') {
         console.log(hash(password));
-        
-        res.cookie("role",hash(password)==="3734422b884b270fef67cd3b12c2b49cadd0c988e150241eb8946fd8a01896d6"?"admin":"",{maxAge:36000000})//admin@iitrpr
+
+        res.cookie("role", hash(password) === "3734422b884b270fef67cd3b12c2b49cadd0c988e150241eb8946fd8a01896d6" ? "admin" : "", { maxAge: 36000000 })//admin@iitrpr
         res.redirect("/admin")
     }
     else {
@@ -378,41 +406,41 @@ app.post("/change", async (req, res) => {
 });
 
 //Admin_Powers
-app.post("/api/classrooms/",async(req,res)=>{
+app.post("/api/classrooms/", async (req, res) => {
     if (req.cookies.role === 'admin') {
         console.table(req.body)
-        if(req.body.task==="add"&&req.body.name&&(await db.room.find(req.body.name) ).length===0){
+        if (req.body.task === "add" && req.body.name && (await db.room.find(req.body.name)).length === 0) {
             db.room.create(req.body.name).then(() => {
                 res.json({ status: "success", message: "Classroom creation successfully!" })
-            }).catch((err)=>{
+            }).catch((err) => {
                 res.json({ status: "failure", message: "Classroom creation failed!" })
             })
         }
-        else if(req.body.task==="add"&&req.body.name&&(await db.room.find(req.body.name) ).length>0){
+        else if (req.body.task === "add" && req.body.name && (await db.room.find(req.body.name)).length > 0) {
             res.json({ status: "failure", message: "Classroom Creation failed! Classroom exists." })
         }
-        else if(req.body.task==="delete"&&req.body.name&&(await db.room.find(req.body.name) ).length>0){
+        else if (req.body.task === "delete" && req.body.name && (await db.room.find(req.body.name)).length > 0) {
             db.room.delete(req.body.name).then(() => {
                 res.json({ status: "success", message: "Classroom deleted successfully!" })
-            }).catch((err)=>{
+            }).catch((err) => {
                 res.json({ status: "failure", message: "Classroom deletion failed! Error : " + err.message })
             })
         }
-        else if(req.body.task==="delete"&&req.body.name&&(await db.room.find(req.body.name) ).length===0){
+        else if (req.body.task === "delete" && req.body.name && (await db.room.find(req.body.name)).length === 0) {
             res.json({ status: "failure", message: "Classroom deletion failed! Classroom does not exist." })
         }
-        else if(req.body.task==="seat"&&req.body.name&&req.body.seat&&req.body.a_or_d&&(await db.room.find(req.body.name) ).length>0){
-            db.room.seat(req.body.name,req.body.seat,req.body.a_or_d).then(() => {
+        else if (req.body.task === "seat" && req.body.name && req.body.seat && req.body.a_or_d && (await db.room.find(req.body.name)).length > 0) {
+            db.room.seat(req.body.name, req.body.seat, req.body.a_or_d).then(() => {
                 res.json({ status: "success", message: "Classroom seat updated successfully!" })
-            }).catch((err)=>{
+            }).catch((err) => {
                 res.json({ status: "failure", message: "Classroom seat update failed! Error : " + err.message })
             })
         }
-        else if(req.body.task==="seat"&&req.body.name&&req.body.seat&&req.body.a_or_d&&(await db.room.find(req.body.name) ).length===0){
+        else if (req.body.task === "seat" && req.body.name && req.body.seat && req.body.a_or_d && (await db.room.find(req.body.name)).length === 0) {
             res.json({ status: "failure", message: "Classroom seat update failed! Classroom does not exist." })
         }
-        else{
-            res.json({status:"failure",message:"Unknown Error!"})
+        else {
+            res.json({ status: "failure", message: "Unknown Error!" })
         }
     } else {
         res.json({ status: "failure", message: "Unauthorized action!" })
@@ -420,7 +448,7 @@ app.post("/api/classrooms/",async(req,res)=>{
 })
 
 // Socket.io connection
-io.on("connection",  (socket) => {
+io.on("connection", (socket) => {
     console.log("A user connected:", socket.id);
     let steps = [false, false, false]
     let parsedCookies;
@@ -431,37 +459,37 @@ io.on("connection",  (socket) => {
     }
     // Handle attendance marking
     if (parsedCookies.role === "student") {
-        socket.on("seat", async e=>{
-            const seat_data=JSON.parse(e.details);
+        socket.on("seat", async e => {
+            const seat_data = JSON.parse(e.details);
 
             const class_data = await db.class(e.course).find(e.id)
-            if(class_data.attendance_open && class_data.venue===seat_data.v){
+            if (class_data.attendance_open && class_data.venue === seat_data.v) {
 
-                if(seat_data.s in class_data.seats_occupied ){
+                if (seat_data.s in class_data.seats_occupied) {
                     socket.emit("seatStatus", { status: "failure", message: "Seat already occupied!" });
                 }
-                else if(seat_data.s in class_data.seats_unoccupied){
-                    socket.emit("seatStatus",{ status: "failure", message: "Seat already marked unoccupied!" })
+                else if (seat_data.s in class_data.seats_unoccupied) {
+                    socket.emit("seatStatus", { status: "failure", message: "Seat already marked unoccupied!" })
                 }
-                else{
-                    socket.emit("seatStatus", { status: "success", message: "Seat verified!", gesture: random.int(1,7) });
+                else {
+                    socket.emit("seatStatus", { status: "success", message: "Seat verified!", gesture: random.int(1, 7) });
                 }
 
             }
         })
-        socket.on("verify",async data=>{
-            const saved_face=await db.student.id(parsedCookies.id)
-            if(compare_faces(saved_face.Image,data.image)){
-            const res = await db.class(data.course_code).attendance(data.id, {id:parsedCookies.id,email:parsedCookies.email});
-            
-            if (res) {
-                socket.emit("verificationStatus", { status: "success", message: "Attendance marked successfully!" });
-            } else {
-                socket.emit("verificationStatus", { status: "failure", message: "Attendance marking failed!" });        
+        socket.on("verify", async data => {
+            const saved_face = await db.student.id(parsedCookies.id)
+            if (compare_faces(saved_face.Image, data.image)) {
+                const res = await db.class(data.course_code).attendance(data.id, { id: parsedCookies.id, email: parsedCookies.email });
+
+                if (res) {
+                    socket.emit("verificationStatus", { status: "success", message: "Attendance marked successfully!" });
+                } else {
+                    socket.emit("verificationStatus", { status: "failure", message: "Attendance marking failed!" });
+                }
             }
-        }
-        else{
-                socket.emit("verificationStatus", { status: "failure", message: "Face Recognition failed!" });        
+            else {
+                socket.emit("verificationStatus", { status: "failure", message: "Face Recognition failed!" });
 
             }
         })
@@ -499,6 +527,12 @@ io.on("connection",  (socket) => {
                 console.table(data)
                 data.details.seat = null;
                 const res = await db.class(data.course_code).attendance(data.id, data.details);
+                if (res) {
+                    socket.emit("attendance", { status: "Success", message: "Attendance marking Succeded!" });
+                }
+                else {
+                    socket.emit("attendance", { status: "failure", message: "Attendance marking failed!" });
+                }
             }
             catch (error) {
                 console.error(error);

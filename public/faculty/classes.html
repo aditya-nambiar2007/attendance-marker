@@ -304,7 +304,7 @@ margin-block-end: 0;
           data.forEach((course) => {    
             const date=new Date(course.start);
             $("#classes").append(
-              `<div class="class"><p>Date : ${date.toLocaleDateString()}</p><p>Start Time : ${(date.getHours()%12).toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')} ${date.getHours()>=12?'PM':'AM'}</p><p>Duration : ${course.duration} minutes</p><p>Strength : ${  course.attendance.length}</p><p>Venue : ${  course.venue}</p><p>Status : <span class="${course.status}">${  course.status.charAt(0).toUpperCase() + course.status.slice(1)}</span></p><details><summary>Notes :</summary><p style="font-weight:500;margin-left:0.5rem;margin-block-start:0;">${course.Notes||""}</p></details><p style="display:flex;justify-content:space-between"><button class="note" onclick="note('${  course._id}','${  course.Notes||""}')">Add Notes</button><button class="attendance-start" ${course.status==='pending'?"":"disabled"} onclick="startAttendance('${course._id}')">Start Attendance</button><button class="mark-manually" onclick="markManually('${course._id}')">Mark Manually</button><button class="cancel" onclick="cancel('${course._id}')">Cancel</button></p></span></div>`
+              `<div class="class"><p>Date : ${date.toLocaleDateString()}</p><p>Start Time : ${(date.getHours()%12).toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')} ${date.getHours()>=12?'PM':'AM'}</p><p>Duration : ${course.duration} minutes</p><p>Strength : ${  course.strength}</p><p>Venue : ${  course.venue}</p><p>Status : <span class="${course.status}">${  course.status.charAt(0).toUpperCase() + course.status.slice(1)}</span></p><details><summary>Notes :</summary><p style="font-weight:500;margin-left:0.5rem;margin-block-start:0;">${course.Notes||""}</p></details><p style="display:flex;justify-content:space-between"><button class="note" onclick="note('${  course._id}','${  course.Notes||""}')">Add Notes</button><button class="attendance-start" ${course.status==='pending'?"":"disabled"} onclick="startAttendance('${course._id}')">Start Attendance</button><button class="mark-manually" onclick="markManually('${course._id}')">Mark Manually</button><button class="cancel" onclick="cancel('${course._id}')">Cancel</button></p></span></div>`
             );
           });
         });
@@ -365,7 +365,6 @@ margin-block-end: 0;
         };
         html5QrcodeScanner.render(onScanSuccess, (error) => { /* QR scan errors are ignored */ });
       };
-        
       const startAttendance = (id) => {
         if(!confirm("Do You Want To Start Attendance Session!!")){
           return;
@@ -380,34 +379,14 @@ margin-block-end: 0;
 
         socket.on("sessionCreated", (data) => {
           if(data.status==="success"){
-            $("#attend_code").show();
-            $('#attend_code').dblclick(()=>{
-              $("#attend_code").hide();
-            })
-            $("#attend_code").on("touchstart",(e)=>{
-              const touchS_y=e.originalEvent.touches[0].clientY;
-              console.log(touchS_y);
-              
-              $("#attend_code").on("touchend",(e)=>{
-                const touchE_y=e.originalEvent.changedTouches[0].clientY;
-                if (touchS_y<touchE_y) {
-                  $("#attend_code").hide();
-                  }
-            })
-          })
-            $("#code").text("Code: " + data.code);
-            $("#qr").empty();
-            new QRCode(document.getElementById("qr"), {
-              text: data.code.toString(),
-              width: window.innerHeight> window.innerWidth?window.innerWidth*0.8:window.innerHeight*0.8,
-              height: window.innerHeight> window.innerWidth?window.innerWidth*0.8:window.innerHeight*0.8,
-              colorDark : "#000000",
-              colorLight : "#ffffff",
-            });
-          } else {
-            alert(data.message);
-          }
-        });
+            alert("Session Started Successfully!!!");
+        }
+        else{
+          alert("Session Failed");
+          console.log(data);
+          
+        }
+      })
 
       const note = async (id, existingNotes) => {
         const prompt = await getPromptAll(["txtarea", "Enter notes for the class:"]);
@@ -426,15 +405,20 @@ margin-block-end: 0;
         $("#schedule").click(async function () {
           let options=[]
 
-            $.get('/api/rooms', function(data) {
-                $('#classroom-list').empty();
+            $.ajax({
+              url: '/api/rooms',
+              method: 'GET',
+              async: false,
+              success: function(data) {
                 data.forEach(function(classroom) {
-                    $('#classroom-list').append(
-                        options.push(classroom.name)
-                    );
+                  options.push(classroom.name);
                 });
+              },
+              error: function(err) {
+                console.error('Failed to fetch rooms', err);
+              }
             });
-
+            
           const prompt = await getPromptAll(
             ["datetime-local", "Start"],
             ["number", "Duration in minutes"],

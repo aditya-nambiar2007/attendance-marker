@@ -246,13 +246,15 @@
     <script>
       const markAttendance= id=>{
         window.location.replace(
-          "/dashboard/attendance/?courseId=" +get_query("courseId") +      "&classId=" +     id
+          "/dashboard/attendance/?courseId=" +get_query("courseId") + "&classId=" +     id
         );
       }
       const load = () => {
         $.get("/courseDetails?course_code=" + get_query("courseId"), (data) => {
           $("#classes").empty();
           data.forEach((course) => {
+            console.log(course);
+            
             const date = new Date(course.start);
             $("#classes").append(
               `<div class="class">
@@ -265,10 +267,13 @@
                 .padStart(2, "0")} ${date.getHours() >= 12 ? "PM" : "AM"}</p>
                 <p>Duration : ${course.duration} minutes</p>
                 <p>Strength : ${
-                  course.attendance.length
+                  course.strength
                 }</p><p>Status : <span class="${course.status}">${
                 course.status.charAt(0).toUpperCase() + course.status.slice(1)
               }</span></p>
+              <p><span>
+                Attendance : ${course.attendance_marked?'<span style=\'color:lime\'>Present</span>':'<span style=\'color:red\'>Absent</span>'}
+              </span></p>
                 <details>
                   <summary>Notes :</summary>
                   <p style="font-weight:500;margin-left:0.5rem;margin-block-start:0;">${

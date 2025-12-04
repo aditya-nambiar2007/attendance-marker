@@ -244,6 +244,9 @@ const exports = {
             },
             delete: async () => {
                 return await Class.deleteMany({ course_code: course_code })
+            },
+            query: async (query) => {
+                return await Class.find(query)
             }
 
         }
