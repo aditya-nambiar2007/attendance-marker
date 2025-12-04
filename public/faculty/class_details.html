@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Class Seats</title>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+    <style>
+      .seat {
+        display: inline-block;
+        width: 80px;
+        height: 80px;
+        margin: 8px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+      }
+      .seat.available {
+        background: #e9ecef;
+      }
+      .seat.occupied {
+        background: #28a745;
+        color: white;
+      }
+      .seat.unoccupied {
+        background: #dc3545;
+        color: white;
+      }
+    </style>
+  </head>
+  <body>
+    <h2 id="title">Class Seats</h2>
+    <div id="seats"></div>
+
+    <script>
+      const socket = io(location.origin);
+      const qs = new URLSearchParams(location.search);
+      const courseId = qs.get("courseId");
+      const classId = qs.get("classId");
+
+      async function load() {
+        if (!courseId || !classId)
+          return $("#title").text("Missing query params courseId or classId");
+        // get course classes and find specific class
+        const classes = await $.get(
+          "/courseDetails?course_code=" + encodeURIComponent(courseId)
+        );
+        const cls = (classes || []).find(
+          (c) => c._id === classId || c.id === classId
+        );
+        if (!cls) return $("#title").text("Class not found");
+        // get room details
+        const room = await $.get(
+          "/api/room_details?name=" + encodeURIComponent(cls.venue)
+        );
+        const seats = room.seats || [];
+        $("#seats").empty();
+        seats.forEach((s) => {
+          const isOcc =
+            Array.isArray(cls.seats_occupied) && cls.seats_occupied.includes(s);
+          const isUn =
+            Array.isArray(cls.seats_unoccupied) &&
+            cls.seats_unoccupied.includes(s);
+          const state = isOcc ? "occupied" : isUn ? "unoccupied" : "available";
+          const $seat = $(
+            `<div class="seat ${state}" data-seat="${s}">${s}</div>`
+          );
+          $seat.on("click", async () => {
+            const action = $seat.hasClass("occupied") ? "vacate" : "occupy";
+            // Call socket toggle
+            socket.emit("toggleSeat", {
+              course_code: courseId,
+              class_id: classId,
+              seat: s,
+              action,
+            });
+          });
+          $("#seats").append($seat);
+        });
+      }
+
+      socket.on("seatToggled", (data) => {
+        // Reload seats on success
+        if (data.status === "success") load();
+        else alert("Seat toggle failed: " + (data.message || ""));
+      });
+
+      $(function () {
+        load();
+      });
+    </script>
+  </body>
+</html>
