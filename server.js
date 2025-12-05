@@ -12,34 +12,16 @@ const random = require("./random");
 const parser = require("body-parser");
 const cookie = require('cookie-parser');
 const ck = require("cookie")
+const  {spawn}=require("child_process")
 //const mailer=require("nodemailer")
 const PORT = 3000;
 const compare_faces = (img1, img2) => {
-    let prediction;
-    const req = http.request({
-        hostname: "localhost",
-        port: 3000,
-        path: "/predict",
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        }
-    }
-        , res => {
-            let response;
-            res.on("data", (data) => {
-                response = data.toString()
-            })
-            res.on("end", () => {
-                prediction = response;
-            })
-        })
-    req.write(JSON.stringify({ img1: img1, img2: img2 }))
-    req.end()
-    req.on("error", (err) => {
-        console.log(err)
+    let res=false
+    const pythonProcess = spawn('python', ["server.py", img1, img2]);
+    pythonProcess.stdout.on('data', (data) => {
+        res=data=='True';
     })
-    return prediction;
+    return res;
 }
 
 app.use(express.json());
@@ -140,6 +122,13 @@ app.get("/dashboard/attendance", (req, res) => {
 app.get("/register", (req, res) => {
     res.sendFile(path.join(__dirname, "public", "/register.html"));
 });
+
+app.get('studentInfo', async(req,res)=>{
+    if(req.cookies.role==='faculty'){
+        const stud=await db.student.id(req.query.id)
+        res.json({name:stud.name,email:stud.email,Image:stud.Image})
+    }
+})
 
 app.get("/facultyDetails", async (req, res) => {
     try {

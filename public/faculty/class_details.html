@@ -58,24 +58,34 @@
         );
         const seats = room.seats || [];
         $("#seats").empty();
-        seats.forEach((s) => {
+        seats.forEach(async (s) => {
           const isOcc =
             Array.isArray(cls.seats_occupied) && cls.seats_occupied.includes(s);
           const isUn =
             Array.isArray(cls.seats_unoccupied) &&
             cls.seats_unoccupied.includes(s);
           const state = isOcc ? "occupied" : isUn ? "unoccupied" : "available";
-          const $seat = $(
-            `<div class="seat ${state}" data-seat="${s}">${s}</div>`
-          );
+          let $seat
+          if (state==="occupied") {
+            const id=cls.attendance.find(map => map.has("seat") && map.get("seat") === s);
+            const stud=await $.get("/studentInfo?id="+id.get('id'))
+            $seat=$(`<div><div class="seat ${state}" data-seat="${s}">${s}</div><div>Occupied By: ${stud.name} <img width='80' height='80' src='${stud.Image}'/></div></div>`)
+          } else {
+            $seat=$(`<div class="seat ${state}" data-seat="${s}">${s}</div>`)
+          }
+          
           $seat.on("click", async () => {
-            const action = $seat.hasClass("occupied") ? "vacate" : "occupy";
             // Call socket toggle
+            const confirmation1=confirm("Do you wnd to mark the person absent?")
+            if(!confirmation1)return;
+            const confirmation2=confirm("Warning This Action Cannot Be Undone !!!!!")
+            if(!confirmation2)return;
+
             socket.emit("toggleSeat", {
               course_code: courseId,
               class_id: classId,
               seat: s,
-              action,
+              action : "vacate",
             });
           });
           $("#seats").append($seat);

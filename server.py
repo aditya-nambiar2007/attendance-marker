@@ -1,30 +1,19 @@
 from deepface import DeepFace
-from flask import request,Flask
-
-app = Flask(__name__)
-
+import argparse
 
 def recog(img1,img2):
     try:
         result = DeepFace.verify(img1_path=img1, img2_path=img2)
-        print(result) # Provides more details like distance, threshold, etc.
         if result["verified"]:
-            return True
+            print(True)
         else:
-            return False        
-    except ValueError as e:
-        print(f"Error: {e}. Ensure faces are detectable in both images.")
-
-@app.route('/predict', methods=['POST'])
-def predict():
-    if request.method == 'POST':
-        if request.is_json:
-            request_data = request.get_json()
-            image1 = request_data['img1']
-            image2 = request_data['img2']
-            prediction = recog(image1,image2)           
-            return 1 if prediction else 0
-        
-if __name__ == '__main__':
-    app.run(host='0.0.0.0',port=3000,debug=True)
-    
+            print(False)
+    except Exception as e:
+        # Print errors to stderr to separate them from normal output
+        print(False)
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Verify if two images contain the same face.")
+    parser.add_argument("img1_path", help="Path or URI to the first image.")
+    parser.add_argument("img2_path", help="Path or URI to the second image.")
+    args = parser.parse_args()
+    recog(args.img1_path, args.img2_path)
