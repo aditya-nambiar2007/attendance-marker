@@ -9,8 +9,8 @@
     <style>
       .seat {
         display: inline-block;
-        width: 80px;
-        height: 80px;
+        width: 100px;
+        height: 100px;
         margin: 8px;
         border-radius: 6px;
         display: flex;
@@ -65,27 +65,37 @@
             Array.isArray(cls.seats_unoccupied) &&
             cls.seats_unoccupied.includes(s);
           const state = isOcc ? "occupied" : isUn ? "unoccupied" : "available";
-          let $seat
+          let $seat;
           if (state==="occupied") {
-            const id=cls.attendance.find(map => map.has("seat") && map.get("seat") === s);
-            const stud=await $.get("/studentInfo?id="+id.get('id'))
-            $seat=$(`<div><div class="seat ${state}" data-seat="${s}">${s}</div><div>Occupied By: ${stud.name} <img width='80' height='80' src='${stud.Image}'/></div></div>`)
+            // Find attendee info by seat
+            const attende = (Array.isArray(cls.attendance) ? cls.attendance : []).find(
+              entry => entry && entry.seat === s  
+            );
+            console.log(attende)
+            const attendee=await $.get("/studentInfo?id="+attende.id);
+            
+            const studentName = attendee ? attendee.name || attendee.email || "Unknown" : "Unknown";
+            const img =attendee?attendee.Image : ""
+            $seat = $(`<div style="display:flex;justify-content:space-between"><div class="seat ${state}" data-seat="${s}">${s}</div><div style="display:grid;align-items:center;font-size:1em;">${studentName}</div><img height=100 weight=100 src="${img}" /></div>`);
           } else {
-            $seat=$(`<div class="seat ${state}" data-seat="${s}">${s}</div>`)
+            $seat = $(`<div class="seat ${state}" data-seat="${s}">${s}</div>`);
           }
           
           $seat.on("click", async () => {
-            // Call socket toggle
-            const confirmation1=confirm("Do you wnd to mark the person absent?")
+            // Only allow toggling occupied seats
+            if (state === "unoccupied") {
+              alert("Can only mark occupied or available seats as absent");
+              return;
+            }
+            const confirmation1=confirm("Do you want to mark the person absent?");
             if(!confirmation1)return;
-            const confirmation2=confirm("Warning This Action Cannot Be Undone !!!!!")
+            const confirmation2=confirm("Warning This Action Cannot Be Undone !!!!!");
             if(!confirmation2)return;
 
             socket.emit("toggleSeat", {
               course_code: courseId,
               class_id: classId,
               seat: s,
-              action : "vacate",
             });
           });
           $("#seats").append($seat);

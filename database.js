@@ -38,7 +38,7 @@ const classSchema = new mongoose.Schema({
     course_code: { type: String, required: true },
     start: { type: Date, required: true },
     duration: { type: Number, required: true },
-    attendance: [Map],
+    attendance: [Object],
     seats_occupied: [String],
     seats_unoccupied: [String],
     attendance_date: { type: Date },
@@ -215,22 +215,18 @@ const exports = {
             ret_all: async () => { return await Class.find({ course_code: course_code }) },
             find: async id => { return await Class.findById(id) },
             attendance: async (id, details) => {
-                const data = new Map([["email", details.email], ["id", details.id], ["seat", details.seat]]);
+                // Store attendance entry as a plain object to avoid Map serialization issues
+                const entry = { email: details.email, id: details.id, seat: details.seat };
                 if (details.seat) {
-                    await Class.findByIdAndUpdate(id, { $addToSet: { seats_occupied: details.seat } })
+                    await Class.findByIdAndUpdate(id, { $addToSet: { seats_occupied: details.seat } });
                 }
-                return await Class.findByIdAndUpdate(id, { $addToSet: { attendance: data } })
+                return await Class.findByIdAndUpdate(id, { $addToSet: { attendance: entry } });
             },
             mark_seat_absent: async (id, seat) => {
-                await Class.findByIdAndUpdate(id, { $pull: { attendance: ["seat", seat] } })
-                await Class.findByIdAndUpdate(id, { $pull: { seats_occupied: seat } })
-                return await Class.findByIdAndUpdate(id, { $addToSet: { seats_unoccupied: seat } })
-            },
-            mark_seat_occupied: async (id, seat) => {
-                // Add seat to occupied and remove from unoccupied
-                await Class.findByIdAndUpdate(id, { $addToSet: { seats_occupied: seat } });
-                await Class.findByIdAndUpdate(id, { $pull: { seats_unoccupied: seat } });
-                return await Class.findByIdAndUpdate(id, { $addToSet: { seats_occupied: seat } });
+                // Remove any attendance entries matching the seat
+                await Class.findByIdAndUpdate(id, { $pull: { attendance: { seat: seat } } });
+                await Class.findByIdAndUpdate(id, { $pull: { seats_occupied: seat } });
+                return await Class.findByIdAndUpdate(id, { $addToSet: { seats_unoccupied: seat } });
             },
             notes: async (id, notes) => {
                 return await Class.findByIdAndUpdate(id, { Notes: notes })

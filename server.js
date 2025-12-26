@@ -12,12 +12,13 @@ const random = require("./random");
 const parser = require("body-parser");
 const cookie = require('cookie-parser');
 const ck = require("cookie")
-const  {spawn}=require("child_process")
+const  {spawn}=require("child_process");
+const { table } = require("console");
 //const mailer=require("nodemailer")
 const PORT = 3000;
 const compare_faces = (img1, img2) => {
     let res=false
-    const pythonProcess = spawn('python', ["server.py", img1, img2]);
+    const pythonProcess = spawn('py', ["server.py", img1, img2]);
     pythonProcess.stdout.on('data', (data) => {
         res=data=='True';
     })
@@ -122,11 +123,17 @@ app.get("/dashboard/attendance", (req, res) => {
 app.get("/register", (req, res) => {
     res.sendFile(path.join(__dirname, "public", "/register.html"));
 });
+app.get("/login", (req,res)=>res.redirect("/register#login"))
 
-app.get('studentInfo', async(req,res)=>{
-    if(req.cookies.role==='faculty'){
+app.get('/studentInfo', async(req,res)=>{
+    table(req.cookies)
+    if(req.cookies.role==='faculty'||req.cookies.role==='admin'){
+        table(req.query)
         const stud=await db.student.id(req.query.id)
         res.json({name:stud.name,email:stud.email,Image:stud.Image})
+    }
+    else{
+        res.write("Cannot GET /studentInfo")
     }
 })
 
@@ -489,15 +496,10 @@ io.on("connection", (socket) => {
         // Allow faculty to toggle seats via socket (optional)
         socket.on('toggleSeat', async (data) => {
             // data: { course_code, class_id, seat, action: 'occupy'|'vacate' }
-            if (!data || !data.class_id || !data.seat || !data.action) return;
+            if (!data || !data.class_id || !data.seat) return;
             try {
-                if (data.action === 'occupy') {
-                    await db.class(data.course_code).mark_seat_occupied(data.class_id, data.seat);
-                    socket.emit('seatToggled', { status: 'success', message: 'Seat marked occupied', seat: data.seat });
-                } else if (data.action === 'vacate') {
                     await db.class(data.course_code).mark_seat_absent(data.class_id, data.seat);
                     socket.emit('seatToggled', { status: 'success', message: 'Seat marked unoccupied', seat: data.seat });
-                }
             } catch (err) {
                 socket.emit('seatToggled', { status: 'failure', message: err.message });
             }
