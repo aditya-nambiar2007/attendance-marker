@@ -43,7 +43,7 @@ function customPromptAll(...params) {
         // Build inputs based on params. Track names to return values in order.
         const names = [];
         params.forEach((p, idx) => {
-            let type = 'text', message = `Input ${idx + 1}`, name = `prompt_${idx}`,options=[];
+            let type = 'text', message = `Input ${idx + 1}`, name = `prompt_${idx}`, options = [];
             if (typeof p === 'string') {
                 message = p;
             } else if (Array.isArray(p)) {
@@ -63,11 +63,11 @@ function customPromptAll(...params) {
                     .addClass('promptInput')
                     .attr({ name })
                     .css({ width: '100%', padding: '8px', 'margin-bottom': '12px', 'box-sizing': 'border-box' });
-                    $input.append($('<option>').attr('value', '').text('--Select--'))
-                    for(const option of options){
-                        const $option = $('<option>').attr('value', option).text(option);
-                        $input.append($option);
-                    }
+                $input.append($('<option>').attr('value', '').text('--Select--'))
+                for (const option of options) {
+                    const $option = $('<option>').attr('value', option).text(option);
+                    $input.append($option);
+                }
                 const $p = $('<p>').attr('class', 'promptMessage').append($label, $input)
                 $container.append($p);
             }
@@ -134,3 +134,11 @@ function get_query(params) {
     const URI = new URL(window.location.href)
     return URI.searchParams.get(params)
 }
+
+const printDiv = (divId) => {
+    const printContents = document.querySelector(divId).innerHTML;
+    const originalContents = document.body.innerHTML;
+    document.body.innerHTML = printContents;
+    window.print();
+    document.body.innerHTML = originalContents;
+};

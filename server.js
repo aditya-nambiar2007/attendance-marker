@@ -456,7 +456,7 @@ io.on("connection", (socket) => {
     // Handle attendance marking
     if (parsedCookies.role === "student") {
         socket.on("seat", async e => {
-            const seat_data = JSON.parse(e.details);
+            const seat_data = ck.parse(e.details);
 
             const class_data = await db.class(e.course).find(e.id)
             if (class_data.attendance_open && class_data.venue === seat_data.v) {

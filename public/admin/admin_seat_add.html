@@ -1,185 +1,212 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="/lib/cookie.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs/qrcode.min.js"></script>
     <title>Admin - Manage Seats</title>
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #f4f7f6;
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            min-height: 100vh;
-        }
-        .container {
-            background-color: #fff;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            width: 100%;
-            max-width: 600px;
-        }
-        h1, h2 {
-            color: #333;
-            border-bottom: 2px solid #eee;
-            padding-bottom: 10px;
-            margin-top: 0;
-        }
-        h2 {
-            font-size: 1.2em;
-            margin-top: 30px;
-        }
-        .form-group {
-            margin-bottom: 20px;
-        }
-        label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: #555;
-        }
-        input[type="text"] {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            box-sizing: border-box;
-        }
-        button {
-            padding: 10px 20px;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 1em;
-            transition: background-color 0.2s;
-        }
-        button[type="submit"] {
-            background-color: #28a745;
-        }
-        button[type="submit"]:hover {
-            background-color: #218838;
-        }
-        .delete-btn {
-            background-color: #dc3545;
-        }
-        .delete-btn:hover {
-            background-color: #c82333;
-        }
-        #seat-list {
-            list-style-type: none;
-            padding: 0;
-        }
-        #seat-list li {
-            background-color: #f9f9f9;
-            padding: 15px;
-            border: 1px solid #ddd;
-            margin-top: -1px; /* Prevent double borders */
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        #seat-list li:first-child {
-            border-top-left-radius: 4px;
-            border-top-right-radius: 4px;
-        }
-        #seat-list li:last-child {
-            border-bottom-left-radius: 4px;
-            border-bottom-right-radius: 4px;
-        }
-        .url-a{
-            background-color: #f9f9f9;
-            color:navy;
-        }
-        .url-a:hover{
-        text-decoration: underline;
-        }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Helvetica, Arial, sans-serif;
+        background-color: #f4f7f6;
+        margin: 0;
+        padding: 20px;
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        min-height: 100vh;
+      }
+      .container {
+        background-color: #fff;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        width: 100%;
+        max-width: 600px;
+      }
+      h1,
+      h2 {
+        color: #333;
+        border-bottom: 2px solid #eee;
+        padding-bottom: 10px;
+        margin-top: 0;
+      }
+      h2 {
+        font-size: 1.2em;
+        margin-top: 30px;
+      }
+      .form-group {
+        margin-bottom: 20px;
+      }
+      label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #555;
+      }
+      input[type="text"] {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        box-sizing: border-box;
+      }
+      button {
+        padding: 10px 20px;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 1em;
+        transition: background-color 0.2s;
+      }
+      button[type="submit"] {
+        background-color: #28a745;
+      }
+      button[type="submit"]:hover {
+        background-color: #218838;
+      }
+      .delete-btn {
+        background-color: #dc3545;
+      }
+      .delete-btn:hover {
+        background-color: #c82333;
+      }
+      .seat-cards {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      .seat-card {
+        width: 3cm;
+        height: 3cm;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: space-between;
+        padding: 5px;
+        background-color: #f9f9f9;
+      }
+      .qr {
+        width: 2cm;
+        height: 2cm;
+      }
+      .qr>img{
+        width: 2cm;
+        height: 2cm;
+        cursor: pointer;
+      }
+      .seat-card p {
+        margin: 0;
+        font-size: 12px;
+        font-weight: bold;
+      }
+      .seat-card .delete-btn {
+        padding: 2px 5px;
+        font-size: 10px;
+        width: 100%;
+      }
     </style>
-</head>
-<body>
-
+  </head>
+  <body>
     <div class="container">
-        <h1>Admin - Manage Seats</h1>
+      <h1>Admin - Manage Seats</h1>
 
-        <!-- Add Seat Section -->
-        <section class="add-seat">
-            <form id="addSeatForm" onsubmit="return false;">
-                <div class="form-group">
-                      <input type="text" id="seatName" name="seatName" placeholder="Seat Number" required>
-                </div>
-                <button type="submit" id="add_class">Add Seat</button>
-            </form>
-        </section>
+      <!-- Add Seat Section -->
+      <section class="add-seat">
+        <form id="addSeatForm" onsubmit="return false;">
+          <div class="form-group">
+            <h5>Click The QR to delete the seat</h5>
+          </div>
+          <div class="form-group">
+            <input
+              type="text"
+              id="seatName"
+              name="seatName"
+              placeholder="Seat Number"
+              required
+            />
+          </div>
+          <button type="submit" id="add_class">Add Seat</button>
+        </form>
+      </section>
 
-        <!-- Existing Seats Section -->
-        <section class="existing-seats">
-            <h2>Existing Seats</h2>
-            <ul id="seat-list">
-                <!-- Example Item. This would be populated dynamically. -->
-            </ul>
-        </section>
+      <!-- Existing Seats Section -->
+      <section class="existing-seats">
+        <h2>Existing Seats  <button onclick="printDiv('#seat-cards')">Print</button></h2>
+        <div id="seat-cards" class="seat-cards">
+          <!-- Cards will be populated dynamically. -->
+        </div>
+      </section>
     </div>
     <script>
-        const param=new URLSearchParams(location.search) 
-        const room=param.get('room')
-        const deleteSeat = (name) => {
-            if (confirm('Are you sure you want to delete this seat?')) {
-            $.ajax({
-                url: `/api/classrooms/`,
-                type: 'POST',
-                data: { seat: name,name:room, task: 'seat',a_or_d:'delete' },
-                success: function(result) {
-                    alert('Seat deleted successfully.');
-                    loadSeats(); // Refresh the list
-                },
-                failure: function(err) {
-                    alert(err.message);
-                }
-            });
+      const param = new URLSearchParams(location.search);
+      const room = param.get("room");
+      const deleteSeat = (name) => {
+        if (confirm("Are you sure you want to delete this seat?")) {
+          $.ajax({
+            url: `/api/classrooms/`,
+            type: "POST",
+            data: { seat: name, name: room, task: "seat", a_or_d: "delete" },
+            success: function (result) {
+              alert("Seat deleted successfully.");
+              loadSeats(); // Refresh the list
+            },
+            failure: function (err) {
+              alert(err.message);
+            },
+          });
         }
-    };
-    $(document).ready(function() {
+      };
+      $(document).ready(function () {
         // Function to load existing seats
-        window.loadSeats=()=> {
-            $.get('/api/room_details?room='+room, function(data) {
-                $('#seat-list').empty();
-                data.seats.forEach(function(seat) {
-                    $('#seat-list').append(
-                        `<li>    
-                            <button class="url-a" data-id="${seat}" onclick="location.href='?room=${seat}'">${seat}</button><button class="delete-btn" onclick="deleteSeat('${seat}')">Delete</button>
-                        </li>`
-                    );
-                });
+        window.loadSeats = () => {
+          $.get("/api/room_details?room=" + room, function (data) {
+            $("#seat-cards").empty();
+            data.seats.forEach(function (seat) {
+              const  elem=  $(`<div class="seat-card"></div>`)
+              const qr = $(`<div class="qr" onclick="deleteSeat('${seat}')   "></div>`);
+              const qrcode = new QRCode(qr[0], {
+                text: `v=${room}&s=${seat.trim()}`, // The data to encode
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H, // Error correction level (L, M, Q, H)
+              });
+                elem.append(qr)
+                elem.append(`<p>${seat}</p>`)
+              $("#seat-cards").append(elem);
             });
-            // Placeholder: Replace with actual data fetching logic
-        }
+            // Generate QR codes
+            
+            });
+          // Placeholder: Replace with actual data fetching logic
+        };
         // Handle form submission to add a new seat
         loadSeats();
         const addSeat = () => {
-            const name = $('#seatName').val().trim();
-            if (name) {
-                $.ajax({
-                    url: `/api/classrooms/`,
-                    type: 'POST',
-                    data: { seat: name, name:room,task: 'seat', a_or_d:'add' },
-                    success: function(result) {
-                        alert(result.message);
-                        loadSeats(); // Refresh the list
-                    },
-                    failure: function(err) {
-                        alert(err.message);
-                    }
-                });
-            }
+          const name = $("#seatName").val().trim();
+          if (name) {
+            $.ajax({
+              url: `/api/classrooms/`,
+              type: "POST",
+              data: { seat: name, name: room, task: "seat", a_or_d: "add" },
+              success: function (result) {
+                alert(result.message);
+                loadSeats(); // Refresh the list
+              },
+              failure: function (err) {
+                alert(err.message);
+              },
+            });
+          }
         };
-        $('#addSeatForm').on('submit', addSeat)        // Load seats on page load
-
-    });
-</script>
-</body>
+        $("#addSeatForm").on("submit", addSeat); // Load seats on page load
+      });
+    </script>
+  </body>
 </html>
